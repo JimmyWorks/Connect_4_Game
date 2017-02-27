@@ -145,7 +145,7 @@ TakeUserInput:
 	
 	FullColumn:
 	beq	$s1,1,FC1		#if the current turn is player then branch
-	j	GameLoop2
+	j	ComputerMove
 	FC1:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalidMoveMsg  	#load address of invalid move message
@@ -216,25 +216,25 @@ PrintBoard:
 	
 ComputerMove:
 	li	$v0, 42			#system call code for Random integer in range
-	li	$a0, 100		#load i.d. of pseudorandom number generator
-	li	$a1,8  			#load immediate of upper bound of random number
+	li	$a0,100			#load i.d. of pseudorandom number generator
+	li	$a1,7  			#load immediate of upper bound of random number
 	syscall				#get random number
-	add	$a0,$a0,1		
+		
 	
 	li	$t0, 88			#load ascii value for x
 	add	$s0, $t0, $zero		#put Computer ascii 'X' into $s0
 	
-	beq	$a0, 1, MoveC1
-	beq	$a0, 2, MoveC2
-	beq	$a0, 3, MoveC3
-	beq	$a0, 4, MoveC4
-	beq	$a0, 5, MoveC5
-	beq	$a0, 6, MoveC6
-	beq	$a0, 7, MoveC7
-	
+	beq	$a0, 0, MoveC1
+	beq	$a0, 1, MoveC2
+	beq	$a0, 2, MoveC3
+	beq	$a0, 3, MoveC4
+	beq	$a0, 4, MoveC5
+	beq	$a0, 5, MoveC6
+	beq	$a0, 6, MoveC7
+	j	ComputerMove
 
 CheckWinCondition:
-	jr	$ra	#This is working
+	jr	$ra
 
 DisplayWin:
 
