@@ -234,7 +234,7 @@ ComputerMove:
 	
 
 CheckWinCondition:
-	jr	$ra
+	jr	$ra	#This is working
 
 DisplayWin:
 
