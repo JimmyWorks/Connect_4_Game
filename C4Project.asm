@@ -1,12 +1,7 @@
+
 		.data
 GameBoard:	.space	42		#reserves a block of 42 bytes
-ClCount1:	.word	0		#initializes the column 1 count to zero
-ClCount2:	.word	0		#initializes the column 2 count to zero
-ClCount3:	.word	0		#initializes the column 3 count to zero
-ClCount4:	.word	0		#initializes the column 4 count to zero
-ClCount5:	.word	0		#initializes the column 5 count to zero
-ClCount6:	.word	0		#initializes the column 6 count to zero
-ClCount7:	.word	0		#initializes the column 7 count to zero
+ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 #======================== Player Markers ===========================================
 #Use these to load marker ascii values and also the values to check for player or computer turn
 Player:		.word   79		#Player marker and also ascii value for 'O'
@@ -84,13 +79,13 @@ ComputerMove:
 	
 CheckValidMove:	
 	#switch for user input
-	beq	$s1, 1, MoveC1
-	beq	$s1, 2, MoveC2
-	beq	$s1, 3, MoveC3
-	beq	$s1, 4, MoveC4
-	beq	$s1, 5, MoveC5
-	beq	$s1, 6, MoveC6
-	beq	$s1, 7, MoveC7
+	beq	$s1, 1, NewMove
+	beq	$s1, 2, NewMove
+	beq	$s1, 3, NewMove
+	beq	$s1, 4, NewMove
+	beq	$s1, 5, NewMove
+	beq	$s1, 6, NewMove
+	beq	$s1, 7, NewMove
 	
 InvalidInput:				#this label is used by different jump calls, but is also automatically executed if CheckValidMove fails
 	beq	$s0, 79, InvalidPlayerMove
@@ -109,81 +104,18 @@ InvalidCompMove:
 	syscall				#print invalid move message	
 	j	ComputerMove		#return
 	
-MoveC1:	
-	lw	$t0,ClCount1		#load number of pieces in column 1 into $t0
+NewMove:	
+	addi    $s2, $s1, -1 		#Gets current move's index $s2 is the current index
+	mul	$t4, $s2, 4		#This is the index offset for word
+	lw	$t0, ClCount($t4)	#Store height of the column in t0 
 	beq	$t0, 6, FullColumn
 	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
+	add 	$t1, $t1, $s2		#Adds column offset
 	la	$t2, GameBoard		#load base address of GameBoard into $t2
 	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
 	sb	$s0, ($t2)		#store player character into calculated address
 	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount1		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC2:
-	lw	$t0,ClCount2		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,1		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount2		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC3:
-	lw	$t0,ClCount3		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,2		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount3		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC4:
-	lw	$t0,ClCount4		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,3		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount4		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC5:
-	lw	$t0,ClCount5		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,4		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount5		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC6:
-	lw	$t0,ClCount6		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,5		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount6		#store updated count of column 1 into memory
-	jr	$ra			#return
-MoveC7:
-	lw	$t0,ClCount7		#load number of pieces in column 2 into $t0
-	beq	$t0, 6, FullColumn
-	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
-	add	$t1,$t1,6		#add column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount7		#store updated count of column 1 into memory
+	sw	$t3, ClCount($t4)		#store updated count of column 1 into memory
 	jr	$ra			#return
 	
 FullColumn:
