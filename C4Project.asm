@@ -192,8 +192,23 @@ CheckWinCondition:
 
 DisplayWin:
 
-EndGame:
 
+	j	EndGame
+
+EndGame:
+	li	$v0, 4			#system call code for Print String
+	la	$a0,Thankyou  	#load address of Player move prompt
+	syscall				#print User input prompt
+	
+	li	$v0, 5			#system call code for Read Integer
+	syscall				#Read user input
+	
+	add	$s1, $v0, $zero		#store input to $t0
+	beq	$s1, 1, main		#return to begining (NOT DONE)
+	
+	li      $v0, 10              # terminate program run and
+  	syscall                      # Exit
+	
 LogicalError:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalidCompMoveMsg 	#load address of error prompt
