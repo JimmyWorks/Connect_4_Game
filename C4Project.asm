@@ -15,6 +15,7 @@ InvalidMoveMsg:	.asciiz			"Invalid move; please try again. \n"
 InvalidCompMoveMsg:	.asciiz		"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMessage:	.asciiz			"Game Over! \n"
+Thankyou	.asciiz			"Do you wish to play again \n Enter 0 to exit \n Enter 1 to try again"
 		.globl	main
 		.text		
 		
