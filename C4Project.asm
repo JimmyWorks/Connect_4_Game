@@ -1,6 +1,7 @@
 		.data
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
+WinCondition:	.word	4		#Number of Tokens to Win
 #======================== Player Markers ===========================================
 #Use these to load marker ascii values and also the values to check for player or computer turn
 Player:		.word   79		#Player marker and also ascii value for 'O'
@@ -10,11 +11,15 @@ WinCondBool:	.byte	0		#1 if true, 0 if false
 PlayerMoveMsg:	.asciiz			"Please pick a column: \n"
 SystemError:	.asciiz			"Program has encountered a system error. \n"
 FullColMsg:	.asciiz			"That column is full.  Try again. \n"
-InvalidMoveMsg:	.asciiz			"Invalid move; please try again. \n"
+InvalidMsg:	.asciiz			"Invalid selection.  Please try again. \n"
 InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
-WinMsg:		.asciiz			"Game Over! \n"
+WinMsg:		.asciiz			"Congratulations!  You WIN!! \n"
+LoseMsg:	.asciiz			"You LOSE, you goober!! \n"
 Thankyou:	.asciiz			"Do you wish to play again \n Enter 0 to exit \n Enter 1 to try again"
+DEBUG:		.asciiz			"DEBUG value: "	#for debug testing
+DEBUG2:		.asciiz			"DEBUG2: win val: "
+Newline:	.asciiz			"\n"
 		.globl	main
 		.text		
 		
@@ -24,20 +29,33 @@ Thankyou:	.asciiz			"Do you wish to play again \n Enter 0 to exit \n Enter 1 to 
 #	    = 88 for computer turn
 #	$s1 = used globally to keep track of selected input column, regardless of
 #	    	player or computer turn
-#	$s2 = win condition, 0 = no winner, 1 = player winner, 2 = computer winner
-#	$s3 = current move's row index
-#	$s4 = current move's column index
+#	$s2 = current move's physical address in Gameboard Array
+#	$s3 = current move's column index
+#	$s4 = current move's row index
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
-#===================================================================================
+#
+#================== How to Use Column and Row Indexing =============================
+#
+#	6   |_35|_36|_37|_38|_39|_40|_41|
+#	5   |___|___|_._|_._|_._|_33|_34|
+#   	4   |___|___|_+6|_+7|_+8|___|___|  To get the negative diagonal pieces, +/- 6 from point of reference
+#  ROWS	3   |___|___|_-1|_x_|_+1|___|___|  To get the positive diagonal pieces, +/- 8 from point of reference
+#   	2   |___|___|_-8|_-7|_-6|___|___|  To get the vertical pieces, +/- 7 from point of reference
+#   	1   |_7_|_8_|_._|_._|_._|___|___|  To get the horizontal pieces, +/- 1 from the point of reference
+#	0   |_0_|_1_|_2_|_3_|_4_|_5_|_6_|  where x + starting address of array = address of xth element
+#	      0   1   2   3   4   5   6   (note: do not need to multiply by size of element since elements
+#		   COLUMNS		   	are characters (size = 1 byte))
+#====================================================================================
+
 
 main:
 	lw	$s6, Player		#Holder for player token
 	lw	$s7, Computer		#Holder for computer token
 	
 NewGame:
-	jal InitializeGameBoard		#Call initializeGameBoard Method
-	jal PrintBoard			#print the initial blank board
+	jal 	InitializeGame		#Call to Initialize New Game
+	jal 	PrintBoard		#print the initial blank board
 	lw	$s0, Player		#Set first turn to player by loading the ascii value for player token 'O' into $s0
 
 GameLoop:
@@ -60,16 +78,28 @@ SwitchPlayers:
 	SwitchToPlayer:
 	add	$s0, $s6, $0
 	jr	$ra
-																		
-InitializeGameBoard:
+
+InitializeGame:																		
+	InitializeGameBoard:
 	li	$t0, 0			#load zero into $t0 for counter
 	li	$t1, 95			#load ascii code for '_' into $t1
-	IGBLoop1:	
+	IGLoop1:	
 	la	$t2, GameBoard		#stores the address of GameBoard into $t2
 	add	$t2, $t2, $t0		#adds the offset to the stored address
 	sb	$t1,($t2)		#store '_' character into GameBoard with offset $t0
 	addi	$t0, $t0, 1		#incrament the counter by 1
-	bne	$t0, 42, IGBLoop1	#loop until all 42 slots are filled
+	bne	$t0, 42, IGLoop1	#loop until all 42 slots are filled
+	
+	InitializeColCounters:
+	
+	li	$t0, 0			#load zero into $t0 for counter
+	IGLoop2:
+	la	$t2, ClCount		#load address of ClCount into $t2
+	add	$t2, $t2, $t0		#adds the offset to the stored address
+	sw	$0, ($t2)
+	addi	$t0, $t0, 4		#increment by 4 for size of word
+	bne	$t0, 28, IGLoop2
+	
 	jr	$ra		
 
 CurrentMove:
@@ -117,7 +147,7 @@ InvalidInput:				#this label is used by different jump calls, but is also automa
 	
 InvalidPlayerMove:	
 	li	$v0, 4			#system call code for Print String
-	la	$a0,InvalidMoveMsg  	#load address of invalid move message
+	la	$a0,InvalidMsg  	#load address of invalid move message
 	syscall				#print invalid move message	
 	j	PlayerMove		#return
 
@@ -128,18 +158,18 @@ InvalidCompMove:
 	j	ComputerMove		#return
 	
 NewMove:	
-	addi    $s3, $s1, -1 		#Store current move's row index in $s3
+	addi    $s3, $s1, -1 		#Store current move's column index in $s3
 	mul	$t4, $s3, 4		#This is the index offset for word
 	lw	$t0, ClCount($t4)	#Store height of the column in t0
-	add	$s4, $t0, $0		#Store current move's column index in $s4
 	beq	$t0, 6, FullColumn
 	mul	$t1,$t0,7 		#multiply the number of pieces in column by 7
 	add 	$t1, $t1, $s3		#Adds column offset
-	la	$t2, GameBoard		#load base address of GameBoard into $t2
-	add	$t2, $t2, $t1		#add the adress of GameBoard with calculated offset
-	sb	$s0, ($t2)		#store player character into calculated address
-	add	$t3, $t0,1		#add 1 to column count and store in $t3
-	sw	$t3, ClCount($t4)	#store updated count of column 1 into memory
+	la	$s2, GameBoard		#load base address of GameBoard into $s2
+	add	$s2, $s2, $t1		#add the adress of GameBoard with calculated offset
+	sb	$s0, ($s2)		#store player character into calculated address
+	add	$s4, $t0, $0		#Store current move's row index in $s4
+	addi	$t0, $t0, 1		#add 1 to column count
+	sw	$t0, ClCount($t4)	#store updated count of column 1 into memory
 	jr	$ra			#return
 	
 FullColumn:
@@ -217,29 +247,80 @@ CheckWinCondition:
 #	    = 88 for computer turn
 #	$s1 = used globally to keep track of selected input column, regardless of
 #	    	player or computer turn
-#	$s2 = win condition, 0 = no winner, 1 = player winner, 2 = computer winner
-#	$s3 = current move's row index
-#	$s4 = current move's column index
+#	$s2 = current move's physical address in Gameboard Array
+#	$s3 = current move's column index
+#	$s4 = current move's row index
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
 #===================================================================================
 	# Let $t0 be the counter for consecutive tokens, it will be initialized and reused for
 	# every case: positive diagonal, negative diagonal, vertical and horizontal cases
+	lw	$t9, WinCondition
 	addi	$t0, $0, 1
-#Create integer i for index in game board array and integer j for modified index checked
 
-#Check vertical for win-condition
-	#set j = i
-	#while there is a token directly below of the position of last token, i.e. j is not index 0-6
-	#compare the j - 7 token to the token of interest
-	#if equal
-		#vertical++
-		#j - 7
-	#else
-		#break
-	#if vertical > 4
-		#return true
+CheckVertical:
+# You cannot have token above the placed token, so only check directly below.
+# Also note: it is impossible to win vertically if there are less than 4 tokens high
+	
+	#Initial Check for Row Index >= 3
+	slti	$t2, $s4, 3			#if number of tokens in column is less than 4 (index 3)
+	bne	$t2, $0, CheckHorizontal	#branch to next check
+	
+	add	$t4, $s4, $0			#set traversing row index to the last token
+	
+		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	li	$v0, 4					   #
+	la	$a0, DEBUG 				   #	
+	syscall					   	   #
+							   #
+	li	$v0, 1					   #		
+	add	$a0, $t4, $0	#select register to check  #
+	syscall				  		   #
+							   #
+	li	$v0, 4					   #		
+	la	$a0, Newline				   #	
+	syscall						   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	
+	add	$t2, $s2, $0			#set traversing physical address to the last token
+	VerticalLoop:	
+	subi	$t4, $t4, 1			#set traversing row index to one below
+	subi	$t2, $t2, 7			#set traversing physical address to one below
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, CheckHorizontal	#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	beq	$t4, $0, CheckHorizontal	#if traversing row index is equal to 0 (base row), go to next check
+	j	VerticalLoop
+		
+		
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	li	$v0, 4					   #
+	la	$a0, DEBUG 				   #	
+	syscall					   	   #
+							   #
+	li	$v0, 1					   #		
+	add	$a0, $t0, $0	#select register to check  #
+	syscall				  		   #
+							   #
+	li	$v0, 4					   #		
+	la	$a0, Newline				   #	
+	syscall						   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+	
+#	Variables:
 
+#	$t0 = counter
+#	$s2 = current move's physical address in array
+#	$s3 = current move's column index
+#	$s4 = current move's row index
+
+#	$t2 = traversing physical address in array
+#	$t3 = traversing column index
+#	$t4 = traversing row index
+		
+CheckHorizontal:
 #Check horizontal for win-condition
 	#set j = i
 	#while there is a token directly right of the position of last token, i.e. j mod 7 is not 6
@@ -259,7 +340,7 @@ CheckWinCondition:
 		#break
 	#if horizontal > 4
 		#return true
-
+CheckNegDiag:
 #Check negative diagonal for win-condition
 	#set j = i
 	#while there is a token directly left-above of the position of last token, i.e. j mod 7 is not 0 AND j is not index 35-41
@@ -279,7 +360,7 @@ CheckWinCondition:
 		#break
 	#if negativeD++ > 4
 	#return true
-
+CheckPosDiag:
 #Check positive diagonal for win-condition
 	#set j = i
 	#while there is a token directly right-above of the position of last token, i.e. j mod 7 is not 6 AND not index 35-41
@@ -308,25 +389,35 @@ WinnerFound:
 	j	LogicalError
 
 PlayerWinner:	
-ComputerWinner:
-DisplayWin:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WinMsg 		#load address of win message
 	syscall				#print
-
+	j	EndGame
+	
+ComputerWinner:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, LoseMsg 		#load address of win message
+	syscall				#print
 	j	EndGame
 
 EndGame:
 	li	$v0, 4			#system call code for Print String
-	la	$a0, Thankyou  		#load address of Player move prompt
-	syscall				#print User input prompt
-	
+	la	$a0, Thankyou  		#load address 
+	syscall				#print 
+	EndGameLoop:	
 	li	$v0, 5			#system call code for Read Integer
 	syscall				#Read user input
 	
-	add	$s1, $v0, $zero		#store input to $t0
-	beq	$s1, 1, NewGame		#return to begining (NOT DONE)
+	add	$t1, $v0, $zero		#store input to $t0
+	beq	$t1, 0, EndProgram	#Exit the program
+	beq	$t1, 1, NewGame		#return to begining (NOT DONE)
 	
+	li	$v0, 4			#system call code for Print String
+	la	$a0,InvalidMsg  	#load address of invalid message
+	syscall				#print invalid message
+	j	EndGameLoop
+
+EndProgram:	
 	li      $v0, 10              	# terminate program run and
   	syscall                      	# Exit
 	
