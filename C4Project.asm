@@ -17,7 +17,7 @@ ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMsg:		.asciiz			"Congratulations!  You WIN!! \n"
 LoseMsg:	.asciiz			"You LOSE, you goober!! \n"
 Thankyou:	.asciiz			"Do you wish to play again \n Enter 0 to exit \n Enter 1 to try again"
-DEBUG:		.asciiz			"DEBUG value: "	#for debug testing
+DEBUG:		.asciiz			"DEBUG: Checking horizontal case..."	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2: win val: "
 Newline:	.asciiz			"\n"
 		.globl	main
@@ -50,6 +50,7 @@ Newline:	.asciiz			"\n"
 
 
 main:
+	# Global Constants for Loading Token or Checking Current Turn
 	lw	$s6, Player		#Holder for player token
 	lw	$s7, Computer		#Holder for computer token
 	
@@ -253,10 +254,7 @@ CheckWinCondition:
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
 #===================================================================================
-	# Let $t0 be the counter for consecutive tokens, it will be initialized and reused for
-	# every case: positive diagonal, negative diagonal, vertical and horizontal cases
 	lw	$t9, WinCondition
-	addi	$t0, $0, 1
 
 CheckVertical:
 # You cannot have token above the placed token, so only check directly below.
@@ -266,22 +264,8 @@ CheckVertical:
 	slti	$t2, $s4, 3			#if number of tokens in column is less than 4 (index 3)
 	bne	$t2, $0, CheckHorizontal	#branch to next check
 	
+	li	$t0, 1				#counter for counting tokens-in-a-row
 	add	$t4, $s4, $0			#set traversing row index to the last token
-	
-		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	li	$v0, 4					   #
-	la	$a0, DEBUG 				   #	
-	syscall					   	   #
-							   #
-	li	$v0, 1					   #		
-	add	$a0, $t4, $0	#select register to check  #
-	syscall				  		   #
-							   #
-	li	$v0, 4					   #		
-	la	$a0, Newline				   #	
-	syscall						   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	
 	add	$t2, $s2, $0			#set traversing physical address to the last token
 	VerticalLoop:	
 	subi	$t4, $t4, 1			#set traversing row index to one below
@@ -294,22 +278,60 @@ CheckVertical:
 	beq	$t4, $0, CheckHorizontal	#if traversing row index is equal to 0 (base row), go to next check
 	j	VerticalLoop
 		
-		
+CheckHorizontal:
+# You cannot win horizontally without a token in the center column for win-condition = 4-in-a-row
+
+	lw	$t1, ClCount+12			#load the height in index 3, base address + index 3 * 4 bytes/word
+	add	$t1, $t1, -1			#Subtract 1 from height to find height in terms of index
+	slt	$t1, $t1, $s4
+	beq	$t1, 1, CheckNegDiag		#if the value in the center column is '_' i.e blank, then go to next check
+
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
 	li	$v0, 4					   #
 	la	$a0, DEBUG 				   #	
 	syscall					   	   #
 							   #
-	li	$v0, 1					   #		
-	add	$a0, $t0, $0	#select register to check  #
-	syscall				  		   #
+	#li	$v0, 1					   #		
+	#add	$a0, $t0, $0	#select register to check  #
+	#syscall				  	   #
 							   #
 	li	$v0, 4					   #		
 	la	$a0, Newline				   #	
 	syscall						   #
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+
+	li	$t0, 1				#counter for counting tokens-in-a-row
+	add	$t3, $s3, $0			#set traversing column index to the last token
+	add	$t2, $s2, $0			#set traversing physical address to the last token
+	HorizontalLoopLeft:	
+	beq	$t3, 0, HorizontalRight		#if the traversing column index is 0, go to next check
 	
-#	Variables:
+	add	$t3, $t3, -1			#set traversing column index to one left
+	add	$t2, $t2, -1			#set traversing physical address to one left
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, HorizontalRight	#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	HorizontalLoopLeft
+	
+	HorizontalRight:			#Keeping the current counter for tokens-in-a-row
+	add	$t3, $s3, $0			#reset traversing column index to the last token
+	add	$t2, $s2, $0			#reset traversing physical address to the last token
+	
+	HorizontalLoopRight:
+	beq	$t3, 6, CheckNegDiag		#if the traversing column index is 6, go to next check
+	
+	add	$t3, $t3, 1			#set traversing column index to one right
+	add	$t2, $t2, 1			#set traversing physical address to one right
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, CheckNegDiag		#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	HorizontalLoopRight
+	
+#	Reference Variables:
 
 #	$t0 = counter
 #	$s2 = current move's physical address in array
@@ -319,28 +341,9 @@ CheckVertical:
 #	$t2 = traversing physical address in array
 #	$t3 = traversing column index
 #	$t4 = traversing row index
-		
-CheckHorizontal:
-#Check horizontal for win-condition
-	#set j = i
-	#while there is a token directly right of the position of last token, i.e. j mod 7 is not 6
-	#compare the j + 1 token to the token of interest
-	#if equal
-		#horizontal++
-		#j + 1
-	#else
-		#break
-	#set j = i
-	#while there is a token directly left of the position of the last token, i.e. j mod 7 is not 0
-	#compare the j - 1 token to the token of interest
-	#if equal
-		#horizontal++
-		#j - 1
-	#else
-		#break
-	#if horizontal > 4
-		#return true
 CheckNegDiag:
+
+
 #Check negative diagonal for win-condition
 	#set j = i
 	#while there is a token directly left-above of the position of last token, i.e. j mod 7 is not 0 AND j is not index 35-41
