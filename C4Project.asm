@@ -14,9 +14,9 @@ FullColMsg:	.asciiz			"That column is full.  Try again. \n"
 InvalidMsg:	.asciiz			"Invalid selection.  Please try again. \n"
 InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
-WinMsg:		.asciiz			"Congratulations!  You WIN!! \n"
-LoseMsg:	.asciiz			"You LOSE, you goober!! \n"
-Thankyou:	.asciiz			"Do you wish to play again \n Enter 0 to exit \n Enter 1 to try again"
+WinMsg:		.asciiz			"\n\n====================\n\nCongratulations!  You WIN!! \n\n====================\n\n"
+LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE, you goober!! \n\n====================\n\n"
+Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
 DEBUG:		.asciiz			"DEBUG: Checking horizontal case..."	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2: win val: "
 Newline:	.asciiz			"\n"
@@ -242,7 +242,8 @@ PrintBoard:
 	jr	$ra
 
 CheckWinCondition:
-#============================== Notes ==============================================
+#============================== Notes ===================================================================
+
 #	$s0 = used globally to keep track of current turn
 #	    = 79 for player turn
 #	    = 88 for computer turn
@@ -253,7 +254,16 @@ CheckWinCondition:
 #	$s4 = current move's row index
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
-#===================================================================================
+
+#===================== For This Check-Win-Condition Segment =============================================
+
+#	$t0 = counter
+#	$t2 = traversing physical address in array
+#	$t3 = traversing column index
+#	$t4 = traversing row index
+
+#========================================================================================================
+
 	lw	$t9, WinCondition
 
 CheckVertical:
@@ -287,17 +297,17 @@ CheckHorizontal:
 	beq	$t1, 1, CheckNegDiag		#if the value in the center column is '_' i.e blank, then go to next check
 
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	li	$v0, 4					   #
-	la	$a0, DEBUG 				   #	
-	syscall					   	   #
+	#li	$v0, 4					   #
+	#la	$a0, DEBUG 				   #	
+	#syscall					   #
 							   #
 	#li	$v0, 1					   #		
 	#add	$a0, $t0, $0	#select register to check  #
 	#syscall				  	   #
 							   #
-	li	$v0, 4					   #		
-	la	$a0, Newline				   #	
-	syscall						   #
+	#li	$v0, 4					   #		
+	#la	$a0, Newline				   #	
+	#syscall					   #
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
 
 	li	$t0, 1				#counter for counting tokens-in-a-row
@@ -330,60 +340,87 @@ CheckHorizontal:
 	addi	$t0, $t0, 1			#else, tokens-in-a-row++
 	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
 	j	HorizontalLoopRight
-	
-#	Reference Variables:
 
-#	$t0 = counter
-#	$s2 = current move's physical address in array
-#	$s3 = current move's column index
-#	$s4 = current move's row index
-
-#	$t2 = traversing physical address in array
-#	$t3 = traversing column index
-#	$t4 = traversing row index
 CheckNegDiag:
 
+	li	$t0, 1				#counter for counting tokens-in-a-row
+	add	$t3, $s3, $0			#set traversing column index to the last token
+	add	$t4, $s4, $0			#set traversing row index to the last token
+	add	$t2, $s2, $0			#set traversing physical address to the last token
+	NegDiagLoopLeft:	
+	beq	$t3, 0, NegDiagRight		#if the traversing column index is 0, go to next check
+	beq	$t4, 6, NegDiagRight		#if the traversing row index is 6, go to next check
+	
+	add	$t3, $t3, -1			#set traversing column index to one left
+	add	$t4, $t4, 1			#set traversing row index to one above
+	add	$t2, $t2, 6			#set traversing physical address to left upper diagonal slot
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, NegDiagRight		#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	NegDiagLoopLeft
+	
+	NegDiagRight:				#Keeping the current counter for tokens-in-a-row
+	add	$t3, $s3, $0			#reset traversing column index to the last token
+	add	$t4, $s4, $0			#reset traversing row index to the last token
+	add	$t2, $s2, $0			#reset traversing physical address to the last token
+	
+	NegDiagLoopRight:
+	beq	$t3, 6, CheckPosDiag		#if the traversing column index is 6, go to next check
+	beq	$t4, 0, CheckPosDiag		#if the traversing row index is 0, go to next check
+	
+	add	$t3, $t3, 1			#set traversing column index to one right
+	add	$t4, $t4, -1			#set traversing row index to one below
+	add	$t2, $t2, -6			#set traversing physical address to right lower diagonal slot
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, CheckPosDiag		#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	NegDiagLoopRight
 
-#Check negative diagonal for win-condition
-	#set j = i
-	#while there is a token directly left-above of the position of last token, i.e. j mod 7 is not 0 AND j is not index 35-41
-	#compare the j + 6 token to the token of interest
-	#if equal
-		#negativeD++
-		#j + 6
-	#else
-		#break
-	#set j = i
-	#while there is a token directly right-below of the position of last token, i.e. j mod 7 is not 6 AND j is not index 0-6
-	#compare the j - 6  token to the token of interest
-	#if equal
-		#negativeD++
-		#j - 6
-	#else
-		#break
-	#if negativeD++ > 4
-	#return true
 CheckPosDiag:
-#Check positive diagonal for win-condition
-	#set j = i
-	#while there is a token directly right-above of the position of last token, i.e. j mod 7 is not 6 AND not index 35-41
-	#compare the j + 8 token to the token of interest
-	#if equal
-		#positiveD++
-		#j + 8
-	#else
-		#break
-	#set j = i
-	#while there is a token directly left-below of the position of the last token, i.e. j mod 7 is not 0 AND not index 0-6
-	#compare j - 8 token to the token of interest
-	#if equal
-		#positiveD++
-		#j - 8
-	#else
-		#break
-	#if positiveD > 4
-	#return true
 
+	li	$t0, 1				#counter for counting tokens-in-a-row
+	add	$t3, $s3, $0			#set traversing column index to the last token
+	add	$t4, $s4, $0			#set traversing row index to the last token
+	add	$t2, $s2, $0			#set traversing physical address to the last token
+	
+	PosDiagLoopLeft:	
+	beq	$t3, 0, PosDiagRight		#if the traversing column index is 0, go to next check
+	beq	$t4, 0, PosDiagRight		#if the traversing row index is 0, go to next check
+	
+	add	$t3, $t3, -1			#set traversing column index to one left
+	add	$t4, $t4, -1			#set traversing row index to one below
+	add	$t2, $t2, -8			#set traversing physical address to left lower diagonal slot
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, PosDiagRight		#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	PosDiagLoopLeft
+	
+	PosDiagRight:				#Keeping the current counter for tokens-in-a-row
+	add	$t3, $s3, $0			#reset traversing column index to the last token
+	add	$t4, $s4, $0			#reset traversing row index to the last token
+	add	$t2, $s2, $0			#reset traversing physical address to the last token
+	
+	PosDiagLoopRight:
+	beq	$t3, 6, NoWinnerFound		#if the traversing column index is 6, no winner found
+	beq	$t4, 6, NoWinnerFound		#if the traversing row index is 6, no winner found
+	
+	add	$t3, $t3, 1			#set traversing column index to one right
+	add	$t4, $t4, 1			#set traversing row index to one above
+	add	$t2, $t2, 8			#set traversing physical address to right upper diagonal slot
+	lb	$t1, ($t2)			#load the token in the traversing checker
+	bne	$t1, $s0, NoWinnerFound		#if it is not equal to the current player's token, branch to next check
+	
+	addi	$t0, $t0, 1			#else, tokens-in-a-row++
+	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	j	PosDiagLoopRight
+	
+	NoWinnerFound:
 	jr	$ra			#No winner found, return to game loop
 	
 WinnerFound:
