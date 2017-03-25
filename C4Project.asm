@@ -8,6 +8,11 @@ Player:		.word   79		#Player marker and also ascii value for 'O'
 Computer:	.word	88		#Computer marker and also ascii value for 'X'
 #===================================================================================
 WinCondBool:	.byte	0		#1 if true, 0 if false
+
+WelcomeBanner:	.asciiz			"\n\n=================================================================================================\n\n  /$$$$$$                                                      /$$           /$$   /$$\n /$$__  $$                                                    | $$          | $$  | $$\n| $$  \\__/  /$$$$$$  /$$$$$$$  /$$$$$$$   /$$$$$$   /$$$$$$$ /$$$$$$        | $$  | $$\n| $$       /$$__  $$| $$__  $$| $$__  $$ /$$__  $$ /$$_____/|_  $$_/        | $$$$$$$$\n| $$      | $$  \\ $$| $$  \\ $$| $$  \\ $$| $$$$$$$$| $$        | $$          |_____  $$\n| $$    $$| $$  | $$| $$  | $$| $$  | $$| $$_____/| $$        | $$ /$$            | $$\n|  $$$$$$/|  $$$$$$/| $$  | $$| $$  | $$|  $$$$$$$|  $$$$$$$  |  $$$$/            | $$\n \\______/  \\______/ |__/  |__/|__/  |__/ \\_______/ \\_______/   \\___/              |__/\n\n=================================================================================================\n\nWelcome to Connect 4!\n\n\n"
+SelectMode:	.asciiz			"Please select a game mode:\n\n1 - 1 Player\n2 - 2 Players\n\n"
+InvalidModeMsg:	.asciiz			"Invalid game mode selected.  Please try again: "
+SelectDifficult:.asciiz			"\nPlease select a difficulty\n\n1 - Easy Mode\n2 - Normal Mode\n3 - Hard Mode\n\n"
 PlayerMoveMsg:	.asciiz			"Please pick a column: \n"
 SystemError:	.asciiz			"Program has encountered a system error. \n"
 FullColMsg:	.asciiz			"That column is full.  Try again. \n"
@@ -32,6 +37,7 @@ Newline:	.asciiz			"\n"
 #	$s2 = current move's physical address in Gameboard Array
 #	$s3 = current move's column index
 #	$s4 = current move's row index
+#	$s5 = game mode, 0 - 1 player, 1 - 2 player
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
 #
@@ -54,8 +60,13 @@ main:
 	lw	$s6, Player		#Holder for player token
 	lw	$s7, Computer		#Holder for computer token
 	
+	li	$v0, 4			#system call code for Print String
+	la	$a0, WelcomeBanner  	#load address of Welcome Banner
+	syscall				#print User input prompt
+	
 NewGame:
 	jal 	InitializeGame		#Call to Initialize New Game
+	jal	SelectGameMode		#select game mode 
 	jal 	PrintBoard		#print the initial blank board
 	lw	$s0, Player		#Set first turn to player by loading the ascii value for player token 'O' into $s0
 
@@ -67,7 +78,29 @@ GameLoop:
 	j	GameLoop
 
 # end of GameLoop
+
+SelectGameMode:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, SelectMode  	#load address of Select Game Mode
+	syscall				#print user input prompt	
+	RetryGameMode:		
+	li 	$v0, 5
+	syscall
 	
+	add	$s5, $v0, $0
+	
+	beq 	$s5, 1, ValidMode
+	beq	$s5, 2, ValidMode
+	
+InvalidMode:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, InvalidModeMsg  	#load address of Invalid Mode
+	syscall				#print user input prompt
+	
+	j 	RetryGameMode
+ValidMode:
+	jr	$ra			
+			
 SwitchPlayers:
 	beq	$s0, $s6, SwitchToCPU
 	beq	$s0, $s7, SwitchToPlayer
@@ -105,6 +138,7 @@ InitializeGame:
 
 CurrentMove:
 	beq	$s0, $s6, PlayerMove
+	beq	$s5, 2, PlayerMove
 	beq	$s0, $s7, ComputerMove
 	j	LogicalError
 	
