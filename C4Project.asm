@@ -13,6 +13,7 @@ WelcomeBanner:	.asciiz			"\n\n==================================================
 SelectMode:	.asciiz			"Please select a game mode:\n\n1 - 1 Player\n2 - 2 Players\n\n"
 InvalidModeMsg:	.asciiz			"Invalid game mode selected.  Please try again: "
 SelectDifficult:.asciiz			"\nPlease select a difficulty\n\n1 - Easy Mode\n2 - Normal Mode\n3 - Hard Mode\n\n"
+InvalDiffMsg:	.asciiz			"Invalid game difficulty selected.  Please try again: "
 PlayerMoveMsg:	.asciiz			"Please pick a column: \n"
 SystemError:	.asciiz			"Program has encountered a system error. \n"
 FullColMsg:	.asciiz			"That column is full.  Try again. \n"
@@ -21,6 +22,8 @@ InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMsg:		.asciiz			"\n\n====================\n\nCongratulations!  You WIN!! \n\n====================\n\n"
 LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE, you goober!! \n\n====================\n\n"
+P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS!! \n\n====================\n\n"
+P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
 DEBUG:		.asciiz			"DEBUG: Checking horizontal case..."	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2: win val: "
@@ -37,7 +40,7 @@ Newline:	.asciiz			"\n"
 #	$s2 = current move's physical address in Gameboard Array
 #	$s3 = current move's column index
 #	$s4 = current move's row index
-#	$s5 = game mode, 0 - 1 player, 1 - 2 player
+#	$s5 = game mode, 1 - 1 player, 2 - 2 player --- For 1P modes: 3 - Easy Mode, 4 - Normal Mode, 5 - Hard Mode
 #	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
 #	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
 #
@@ -99,7 +102,33 @@ InvalidMode:
 	
 	j 	RetryGameMode
 ValidMode:
-	jr	$ra			
+	beq	$s5, 1, SelectDifficulty
+	jr	$ra	
+	
+SelectDifficulty:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, SelectDifficult  	#load address of Select Game Mode
+	syscall				#print user input prompt		
+	RetryDifficulty:
+	li 	$v0, 5
+	syscall		
+	
+	add	$s5, $v0, $0
+	
+	beq	$s5, 1, ValidDifficulty
+	beq	$s5, 2, ValidDifficulty
+	beq	$s5, 3, ValidDifficulty
+
+InvalidDifficulty:	
+	li	$v0, 4			#system call code for Print String
+	la	$a0, InvalDiffMsg  	#load address of Invalid Mode
+	syscall				#print user input prompt
+	
+	j 	RetryDifficulty
+
+ValidDifficulty:
+	add	$s5, $s5, 2		#offset selection by 2 to correct game mode selection, e.g. Selected Easy Mode = 1 + 2 = Game Mode 3
+	jr	$ra
 			
 SwitchPlayers:
 	beq	$s0, $s6, SwitchToCPU
@@ -138,7 +167,7 @@ InitializeGame:
 
 CurrentMove:
 	beq	$s0, $s6, PlayerMove
-	beq	$s5, 2, PlayerMove
+	beq	$s5, 2, PlayerMove	#if the game is 2-player mode ($s5 = 2), then let player 2 move
 	beq	$s0, $s7, ComputerMove
 	j	LogicalError
 	
@@ -155,12 +184,22 @@ PlayerMove:
 	j	CheckValidMove		#Check if the move is valid
 	
 ComputerMove:
+	beq	$s5, 3, EasyMode
+	beq	$s5, 4, NormalMode
+	beq	$s5, 5, HardMode
+	j	LogicalError
+	
+HardMode:	#unimplemented for now
+		#whatever the logic is, must end with a jump to CheckValidMove
+NormalMode:	#unimplemented for now
+		#whatever the logic is, must end with a jump to CheckValidMove
+EasyMode:
 	lw	$t0, Computer		#load ascii value for x
 	add	$s0, $t0, $zero		#put Computer ascii 'X' into $s0
 	
 	li	$v0, 42			#system call code for Random integer in range
-	li	$a0,100			#load i.d. of pseudorandom number generator
-	li	$a1,7  			#load immediate of upper bound of random number
+	li	$a0, 100			#load i.d. of pseudorandom number generator
+	li	$a1, 7  			#load immediate of upper bound of random number
 	syscall				#get random number
 	addi	$s1, $a0, 1		#store random number into $s1	
 	j	CheckValidMove
@@ -458,6 +497,8 @@ CheckPosDiag:
 	jr	$ra			#No winner found, return to game loop
 	
 WinnerFound:
+	beq	$s5, 2, TwoPlayerWinner	#if the game is 2-player mode ($s5 = 2), then go to 2-P Printer
+	
 	beq	$s0, $s6, PlayerWinner
 	beq	$s0, $s7, ComputerWinner
 	j	LogicalError
@@ -474,6 +515,23 @@ ComputerWinner:
 	syscall				#print
 	j	EndGame
 
+TwoPlayerWinner:
+	beq	$s0, $s6, Player1Wins
+	beq	$s0, $s7, Player2Wins
+	j	LogicalError
+	
+Player1Wins:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, P1WinMsg		#load address of win message
+	syscall				#print
+	j	EndGame
+	
+Player2Wins:	
+	li	$v0, 4			#system call code for Print String
+	la	$a0, P2WinMsg 		#load address of win message
+	syscall				#print
+	j	EndGame
+	
 EndGame:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, Thankyou  		#load address 
