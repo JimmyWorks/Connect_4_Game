@@ -25,7 +25,7 @@ LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE, you goober!! \n\n=====
 P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS!! \n\n====================\n\n"
 P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
-DEBUG:		.asciiz			"DEBUG: Checking horizontal case..."	#for debug testing
+DEBUG:		.asciiz			"DEBUG: "	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2: win val: "
 Newline:	.asciiz			"\n"
 		.globl	main
@@ -69,9 +69,9 @@ main:
 	
 NewGame:
 	jal 	InitializeGame		#Call to Initialize New Game
-	jal	SelectGameMode		#select game mode 
+	jal	SelectGameMode		#select game mode
 	jal 	PrintBoard		#print the initial blank board
-	lw	$s0, Player		#Set first turn to player by loading the ascii value for player token 'O' into $s0
+	jal	SetFirstMove		#Set first move depending on difficulty mode, if 1-player mode
 
 GameLoop:
 	jal	CurrentMove
@@ -127,7 +127,7 @@ InvalidDifficulty:
 	j 	RetryDifficulty
 
 ValidDifficulty:
-	add	$s5, $s5, 2		#offset selection by 2 to correct game mode selection, e.g. Selected Easy Mode = 1 + 2 = Game Mode 3
+	add	$s5, $s5, 2		#offset selection by 2 to correct game mode selection, e.g. Selected Easy Mode = 1 + 2 = Game Mode 3	
 	jr	$ra
 			
 SwitchPlayers:
@@ -165,6 +165,17 @@ InitializeGame:
 	
 	jr	$ra		
 
+SetFirstMove:
+PlayerMovesFirst:
+	beq	$s5, 5, ComMovesFirst	#If Game Mode 5 (1P and Hard Mode), Computer moves first.  Else, P1 moves first
+	
+	lw	$s0, Player		#Set first turn to player 1 by loading the ascii value for player token 'O' into $s0
+	jr	$ra
+ComMovesFirst:
+	lw	$s0, Computer
+	jr	$ra
+	
+
 CurrentMove:
 	beq	$s0, $s6, PlayerMove
 	beq	$s5, 2, PlayerMove	#if the game is 2-player mode ($s5 = 2), then let player 2 move
@@ -189,11 +200,29 @@ ComputerMove:
 	beq	$s5, 5, HardMode
 	j	LogicalError
 	
-HardMode:	#unimplemented for now
-		#whatever the logic is, must end with a jump to CheckValidMove
+HardMode:	#In-Progress....
+
+	li	$s1, 0
+	addi	$sp, $sp, -4
+	sw	$ra, 0($sp)
+	
+	jal	FirstMoveCheck
+		bne	$s1, $0, BestMove
+	jal	Bottom3Check
+		bne	$s1, $0, BestMove
+	jal	BottomWinCheck
+		bne	$s1, $0, BestMove
+	
+	lw	$ra, 0($sp)
+	addi	$sp, $sp, 4
+	
+	j	RandomMove
+
 NormalMode:	#unimplemented for now
 		#whatever the logic is, must end with a jump to CheckValidMove
 EasyMode:
+
+RandomMove:
 	lw	$t0, Computer		#load ascii value for x
 	add	$s0, $t0, $zero		#put Computer ascii 'X' into $s0
 	
@@ -203,7 +232,82 @@ EasyMode:
 	syscall				#get random number
 	addi	$s1, $a0, 1		#store random number into $s1	
 	j	CheckValidMove
+
+BestMove:
+	lw	$ra, 0($sp)
+	addi	$sp, $sp, 4
+	j	CheckValidMove
 	
+			
+FirstMoveCheck:
+	la	$t0, ClCount
+	lw	$t0, 12($t0)
+				
+	beq	$t0, $0, Select4
+	jr	$ra
+
+Bottom3Check:
+	la	$t0, ClCount
+	lw	$t1, 8($t0)
+	
+	beq	$t1, $0, Select3
+	
+	lw	$t1, 16($t0)	
+	
+	beq	$t1, $0, Select5
+	
+	jr	$ra
+
+BottomWinCheck:	
+	la	$t0, GameBoard			#Load address of the GameBoard into $t0
+	addi	$t0, $t0, 2			#Let $t0 hold the address of the token: one token to the left of the bottom center token
+	li	$t1, 3				#Let $t1 hold the current column
+	
+BWCheckLoopLeft:	
+	beq	$t1, $0, BWCheckRight
+	
+	lb	$t2, ($t0)
+	beq	$t2, 79, BWCheckRight
+	beq	$t2, 95, BWCheckNextMove
+	
+	add	$t0, $t0, -1
+	add	$t1, $t1, -1
+	j	BWCheckLoopLeft
+	
+BWCheckRight:
+	
+	la	$t0, GameBoard
+	addi	$t0, $t0, 4
+	li	$t1, 5
+	
+BWCheckLoopRight:			
+	beq	$t1, 8, BWCheckNoMove
+	
+	lb	$t2, ($t0)
+	beq	$t2, 79, BWCheckNoMove
+	beq	$t2, 95, BWCheckNextMove
+	
+	add	$t0, $t0, 1
+	add	$t1, $t1, 1
+	j	BWCheckLoopRight
+
+BWCheckNoMove:
+	jr	$ra
+	
+BWCheckNextMove:
+	add	$s1, $t1, $0
+	jr	$ra
+				
+Select4:
+	li	$s1, 4
+	jr	$ra
+Select3:
+	li	$s1, 3
+	jr	$ra
+Select5:
+	li	$s1, 5
+	jr	$ra
+		
 CheckValidMove:	
 	#switch for user input
 	beq	$s1, 1, NewMove
@@ -386,6 +490,7 @@ CheckHorizontal:
 	li	$t0, 1				#counter for counting tokens-in-a-row
 	add	$t3, $s3, $0			#set traversing column index to the last token
 	add	$t2, $s2, $0			#set traversing physical address to the last token
+	
 	HorizontalLoopLeft:	
 	beq	$t3, 0, HorizontalRight		#if the traversing column index is 0, go to next check
 	
