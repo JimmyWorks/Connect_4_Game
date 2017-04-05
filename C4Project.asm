@@ -213,6 +213,9 @@ HardMode:	#In-Progress....
 	jal	BottomWinCheck
 		bne	$s1, $0, BestMove
 	
+	jal	CenterCheck				#strategic control of center column
+		bne	$s1, $0, BestMove
+	
 	lw	$ra, 0($sp)
 	addi	$sp, $sp, 4
 	
@@ -244,6 +247,12 @@ FirstMoveCheck:
 	lw	$t0, 12($t0)
 				
 	beq	$t0, $0, Select4
+	jr	$ra
+	
+CenterCheck:				#not tested but should place ai move on column 4 before randomly placing move
+	addi	$t4, $0, 16  
+	lw	$t0, ClCount($t4)			
+	bne	$t0, 6, Select4
 	jr	$ra
 
 Bottom3Check:
