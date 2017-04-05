@@ -250,7 +250,7 @@ FirstMoveCheck:
 	jr	$ra
 	
 CenterCheck:				#not tested but should place ai move on column 4 before randomly placing move
-	addi	$t4, $0, 16  
+	addi	$t4, $0, 12  
 	lw	$t0, ClCount($t4)			
 	bne	$t0, 6, Select4
 	jr	$ra
