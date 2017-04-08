@@ -1,6 +1,6 @@
 		.data
 
-Bitmap:		.space	16384		#reserves a block of 4096 bytes for 64 x 64 pixel board		
+Bitmap:		.space	16384		#reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 WinCondition:	.word	4		#Number of Tokens to Win
@@ -28,7 +28,9 @@ P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS
 P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
 DEBUG:		.asciiz			"DEBUG: "	#for debug testing
-DEBUG2:		.asciiz			"DEBUG2: win val: "
+DEBUG2:		.asciiz			"DEBUG2: "
+DEBUG3:		.asciiz			"DEBUG3: "
+DEBUG4:		.asciiz			"Switching players: "
 Newline:	.asciiz			"\n"
 		.globl	main
 		.text		
@@ -93,7 +95,7 @@ NewGame:
 GameLoop:
 	jal	CurrentMove
 	jal	PrintBoard
-#	jal	UpdateBitmap
+	jal	UpdateBitmap
 	jal 	CheckWinCondition
 	jal	SwitchPlayers
 	j	GameLoop
@@ -154,10 +156,41 @@ SwitchPlayers:
 	j	LogicalError
 		
 	SwitchToCPU:
-	li	$s0, 88	
+	li	$s0, 88
+	li	$s6, 0x00FF0000	
+	
+		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	li	$v0, 4					   #
+	la	$a0, DEBUG4 				   #	
+	syscall					   #
+							   #
+	li	$v0, 1					   #		
+	add	$a0, $s6, $0	#select register to check  #
+	syscall				  	   #
+							   #
+	li	$v0, 4					   #		
+	la	$a0, Newline				   #	
+	syscall					   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+	
 	jr	$ra	
 	SwitchToPlayer:
 	li	$s0, 79
+	li	$s6, 0x00FFFF00
+	
+		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	li	$v0, 4					   #
+	la	$a0, DEBUG4 				   #	
+	syscall					   #
+							   #
+	li	$v0, 1					   #		
+	add	$a0, $s6, $0	#select register to check  #
+	syscall				  	   #
+							   #
+	li	$v0, 4					   #		
+	la	$a0, Newline				   #	
+	syscall					   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
 	jr	$ra
 
 InitializeGame:																		
@@ -196,7 +229,6 @@ ClearBoard:
 	li 	$t0, 0			# $t0, x = 0 (initialize x-coor, the pixel rows)
     	li 	$t1, 0			# $t1, y = 0 (initialize y-coor, the pixel columns)    	  	
     	li	$t5, 0x00000000		# $t5 holds the 24-bit RGB, here it's black
-    	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
 
 	ClearBitmapLoop:    	
     	sll	$t2, $t0, 8		# Get the current row index ( x * 256 bytes)
@@ -270,9 +302,11 @@ PlayerMovesFirst:
 	beq	$s5, 5, ComMovesFirst	#If Game Mode 5 (1P and Hard Mode), Computer moves first.  Else, P1 moves first
 	
 	lw	$s0, Player		#Set first turn to player 1 by loading the ascii value for player token 'O' into $s0
+	li	$s6, 0x00FFFF00
 	jr	$ra
 ComMovesFirst:
 	lw	$s0, Computer
+	li	$s6, 0x00FF0000
 	jr	$ra
 	
 
@@ -520,32 +554,122 @@ PrintBoard:
 	jr	$ra
 	
 
-UpdateBitmap:
-	mul	$t0, $s3, 9
-	sll	$t0, $t0, 8		# mul 256
-	mul	$t1, $s4, 9
-	add	$t0, $t0, $t1		# $t0 is the index of first pixel
-	add	$t0, $t0, 0x10010000	# $t0 is the address of first pixel
+UpdateBitmap:				# Update Current Game Board with Last Token Placment
+	# Find Last Token Placement to Find Location on Bitmap
+	mul	$t0, $s3, 9		# Current column index * 9 pixels
+	add	$t0, $t0, 1		# Add 1 pixel for the first border pixel
+	
+	beq	$s4, 0, BitmapIndex5	# If token is in row index 0, it is index 5 from the top
+	beq	$s4, 1, BitmapIndex4	# If token is in row index 1, it is index 4 from the top
+	beq	$s4, 2, BitmapIndex3	# If token is in row index 2, it is index 3 from the top
+	beq	$s4, 3, BitmapIndex2	# If token is in row index 3, it is index 2 from the top
+	beq	$s4, 4, BitmapIndex1	# If token is in row index 4, it is index 1 from the top
+	beq	$s4, 5, BitmapIndex0	# If token is in row index 5, it is index 0 from the top
+	j	LogicalError
+    BitmapIndex5:
+  	li	$t1, 5			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+    BitmapIndex4:
+  	li	$t1, 4			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+    BitmapIndex3:
+  	li	$t1, 3			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+    BitmapIndex2:
+  	li	$t1, 2			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+    BitmapIndex1:
+  	li	$t1, 1			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+    BitmapIndex0:
+  	li	$t1, 0			# $t1 holds row index from the top
+  	j	ContUpdateBitmap
+
+  ContUpdateBitmap:			# After getting the row index from the top,
+	mul	$t1, $t1, 9		# Multiply by 9 pixels
+	add	$t1, $t1, 1		# Add 1 pixel for border pixel
+	sll	$t1, $t1, 6		# Multiply by 64 pixels per row to get to first pixel in correct row
+	add	$t0, $t0, $t1		# Add column pixel offset
+	sll	$t0, $t0, 2		# Multiply by 4 to get full offset in bytes (4 bytes per pixel)
+	
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	#li	$v0, 4					   #
+	#la	$a0, DEBUG 				   #	
+	#syscall					   #
+							   #
+	#li	$v0, 1					   #		
+	#add	$a0, $t0, $0	#select register to check  #
+	#syscall				  	   #
+							   #
+	#li	$v0, 4					   #		
+	#la	$a0, Newline				   #	
+	#syscall					   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+	
+	add	$t0, $t0, 0x10010000	# Add total offset to the base address
 
   TokenTop4Pix:	
-	add	$t1, $t0, 2
-	
-	li	$t2, 0
+	li	$t1, 2			# Starting pixel is the 3rd pixel
      TokenTop4PixLoop:
-	beq	$t2, 4, TokenBot4Pix
-	
-	beq	$s0, 79, PrintYellowTokBot4Pix
-#	beq	$s0, 88, PrintRedTokBot4Pix
-	j	LogicalError
-	
-     PrintYellowTokBot4Pix:
+	beq	$t1, 6, TokenBot4Pix	# While the pixel is pixel index 2-5, else branch to next part
+	sll	$t2, $t1, 2		# Multiply index by 4 bytes
+	add	$t2, $t0, $t2		# Add offset to base address
+	sw	$s6, ($t2)		# Load current player's color into the address
+	add	$t1, $t1, 1		# Increment the pixel index
+	j	TokenTop4PixLoop	# Go back and print again
      
-  TokenBot4Pix:
-  
-  jr	$ra
+  TokenBot4Pix:  			
+  	li	$t1, 2			# Starting pixel is the 3rd pixel
+     TokenBot4PixLoop:
+     	beq	$t1, 6, TokenTop6Pix	# While the pixel is pixel index 2-5, else branch to next part
+     	sll	$t2, $t1, 2		# Multiply index by 4 bytes
+     	add	$t2, $t0, $t2		# Add offset to base address
+     	sw	$s6, 1792($t2)		# Load current player's color into the address, offset to bottom of token (7 rows * 256 bytes/row)
+     	add	$t1, $t1, 1		# Increment the pixel index
+     	j	TokenBot4PixLoop	# Go back and print again
+     
+  TokenTop6Pix:
+    	add	$t0, $t0, 256		# Move base address down a row (256 bytes/row)
+    	
+  	li	$t1, 1			# Now print starting at 2nd pixel
+     TokenTop6PixLoop:
+     	beq	$t1, 7, TokenBot6Pix	# While the pixel is pixel index 1-6, else branch to next part
+     	sll	$t2, $t1, 2		# Multiply index by 4 bytes
+     	add	$t2, $t0, $t2		# Add offset to base address
+     	sw	$s6, ($t2)		# Load current player's color into the address
+     	add	$t1, $t1, 1		# Increment the pixel index
+     	j	TokenTop6PixLoop	# Go back and print again
      	
-
-
+  TokenBot6Pix:
+  	li	$t1, 1			# Now print starting at 2nd pixel
+     TokenBot6PixLoop:
+     	beq	$t1, 7, TokenMidPix	# While the pixel is pixel index 1-6, else branch to next part
+     	sll	$t2, $t1, 2		# Multiply index by 4 bytes
+     	add	$t2, $t0, $t2		# Add offset to base address
+     	sw	$s6, 1280($t2)		# Load current player's color into the address, offset 5 rows down (5 rows * 256 bytes/row)
+     	add	$t1, $t1, 1		# Increment the pixel index
+     	j	TokenBot6PixLoop	# Go back and print again
+     	
+   TokenMidPix:
+   	add	$t0, $t0, 256		# Move base address down a row (256 bytes/row)
+   	
+   	li	$t1, 0			# Let $t1 hold the pixel column, initialized to 0
+   	li	$t3, 0			# Let $t3 hold the pixel row, initialized to 0
+     TokenMidPixLoop:
+     	beq	$t1, 8, TokenMidPixNext	# Print for column index 0-7, else go to cycle next row
+     	sll	$t4, $t3, 8		# Multiply the row index by 256 bytes
+     	sll	$t2, $t1, 2		# Multiply the col index by 4 bytes
+     	add	$t2, $t2, $t4		# Add total row and col bytes to get total offset
+     	add	$t2, $t0, $t2		# Add offset to base address
+     	sw	$s6, 0($t2)		# Load current player's color into the address
+     	add	$t1, $t1, 1		# Increment the pixel index
+     	j	TokenMidPixLoop		# Go back and print again
+     TokenMidPixNext:
+     	beq	$t3, 3, JumpReturn	# Print rows 1-3, if the row is 3, jump return to main
+     	li	$t1, 0			# Otherwise, reset the column index
+     	add	$t3, $t3, 1		# Increment the row index
+     	j	TokenMidPixLoop		# And go back to continue printing
+     	
 
 
 CheckWinCondition:
@@ -602,20 +726,6 @@ CheckHorizontal:
 	add	$t1, $t1, -1			#Subtract 1 from height to find height in terms of index
 	slt	$t1, $t1, $s4
 	beq	$t1, 1, CheckNegDiag		#if the value in the center column is '_' i.e blank, then go to next check
-
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	#li	$v0, 4					   #
-	#la	$a0, DEBUG 				   #	
-	#syscall					   #
-							   #
-	#li	$v0, 1					   #		
-	#add	$a0, $t0, $0	#select register to check  #
-	#syscall				  	   #
-							   #
-	#li	$v0, 4					   #		
-	#la	$a0, Newline				   #	
-	#syscall					   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
 
 	li	$t0, 1				#counter for counting tokens-in-a-row
 	add	$t3, $s3, $0			#set traversing column index to the last token
