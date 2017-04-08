@@ -53,16 +53,15 @@ Newline:	.asciiz			"\n"
 #									
 #============================== Notes ==============================================
 #	$s0 = used globally to keep track of current turn
-#	    = 79 for player turn
-#	    = 88 for computer turn
+#	    = 79 for player turn (used in many comparisons for branching, jumping, displaying ascii board)
+#	    = 88 for computer turn (used in many comparisons for branching, jumping, displaying ascii board)
 #	$s1 = used globally to keep track of selected input column, regardless of
 #	    	player or computer turn
 #	$s2 = current move's physical address in Gameboard Array
 #	$s3 = current move's column index
 #	$s4 = current move's row index
 #	$s5 = game mode, 1 - 1 player, 2 - 2 player --- For 1P modes: 3 - Easy Mode, 4 - Normal Mode, 5 - Hard Mode
-#	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
-#	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
+#	$s6 = color of current turn (0x00FFFF00, yellow for P1, 0x00FF0000, red for P2)
 #
 #================== How to Use Column and Row Indexing =============================
 #
@@ -79,9 +78,6 @@ Newline:	.asciiz			"\n"
   	
 	
 main:   
-	# Global Constants for Loading Token or Checking Current Turn
-	lw	$s6, Player		#Holder for player token
-	lw	$s7, Computer		#Holder for computer token
 	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WelcomeBanner  	#load address of Welcome Banner
@@ -97,6 +93,7 @@ NewGame:
 GameLoop:
 	jal	CurrentMove
 	jal	PrintBoard
+#	jal	UpdateBitmap
 	jal 	CheckWinCondition
 	jal	SwitchPlayers
 	j	GameLoop
@@ -152,15 +149,15 @@ ValidDifficulty:
 	jr	$ra
 			
 SwitchPlayers:
-	beq	$s0, $s6, SwitchToCPU
-	beq	$s0, $s7, SwitchToPlayer
+	beq	$s0, 79, SwitchToCPU
+	beq	$s0, 88, SwitchToPlayer
 	j	LogicalError
 		
 	SwitchToCPU:
-	add	$s0, $s7, $0	
+	li	$s0, 88	
 	jr	$ra	
 	SwitchToPlayer:
-	add	$s0, $s6, $0
+	li	$s0, 79
 	jr	$ra
 
 InitializeGame:																		
@@ -202,7 +199,7 @@ ClearBoard:
     	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
 
 	ClearBitmapLoop:    	
-    	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+    	sll	$t2, $t0, 8		# Get the current row index ( x * 256 bytes)
     	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
   	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
     	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
@@ -224,7 +221,7 @@ ClearBoard:
 	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
 
 	LatBarsBitmapLoop:    	
-    	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+    	sll	$t2, $t0, 8		# Get the current row index ( x * 256 bytes)
     	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
   	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
     	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
@@ -250,7 +247,7 @@ ClearBoard:
 	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
 	   	
    	LongBarsBitmapLoop:
-   	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+   	sll	$t2, $t0, 8		# Get the current row index ( x * 256 bytes)
     	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
   	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
     	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
@@ -280,9 +277,9 @@ ComMovesFirst:
 	
 
 CurrentMove:
-	beq	$s0, $s6, PlayerMove
+	beq	$s0, 79, PlayerMove
 	beq	$s5, 2, PlayerMove	#if the game is 2-player mode ($s5 = 2), then let player 2 move
-	beq	$s0, $s7, ComputerMove
+	beq	$s0, 88, ComputerMove
 	j	LogicalError
 	
 PlayerMove:
@@ -422,8 +419,9 @@ CheckValidMove:
 	beq	$s1, 7, NewMove
 	
 InvalidInput:				#this label is used by different jump calls, but is also automatically executed if CheckValidMove fails
-	beq	$s0, $s6, InvalidPlayerMove
-	beq	$s0, $s7, InvalidCompMove	
+	beq	$s0, 79, InvalidPlayerMove
+	beq	$s5, 2, InvalidPlayerMove
+	beq	$s0, 88, InvalidCompMove	
 	j	LogicalError		#print system error if $s0 is not player or computer
 	
 InvalidPlayerMove:	
@@ -520,6 +518,35 @@ PrintBoard:
 	
 	bne	$t0, 6, PBloop1
 	jr	$ra
+	
+
+UpdateBitmap:
+	mul	$t0, $s3, 9
+	sll	$t0, $t0, 8		# mul 256
+	mul	$t1, $s4, 9
+	add	$t0, $t0, $t1		# $t0 is the index of first pixel
+	add	$t0, $t0, 0x10010000	# $t0 is the address of first pixel
+
+  TokenTop4Pix:	
+	add	$t1, $t0, 2
+	
+	li	$t2, 0
+     TokenTop4PixLoop:
+	beq	$t2, 4, TokenBot4Pix
+	
+	beq	$s0, 79, PrintYellowTokBot4Pix
+#	beq	$s0, 88, PrintRedTokBot4Pix
+	j	LogicalError
+	
+     PrintYellowTokBot4Pix:
+     
+  TokenBot4Pix:
+  
+  jr	$ra
+     	
+
+
+
 
 CheckWinCondition:
 #============================== Notes ===================================================================
@@ -532,8 +559,8 @@ CheckWinCondition:
 #	$s2 = current move's physical address in Gameboard Array
 #	$s3 = current move's column index
 #	$s4 = current move's row index
-#	$s6 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
-#	$s7 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
+#	79 = 79, register holder for player token in ascii value.  Compare to $s0 for current turn
+#	88 = 88, register holder for computer token in ascii value.  Compare to $s0 for current turn
 
 #===================== For This Check-Win-Condition Segment =============================================
 
@@ -707,8 +734,8 @@ CheckPosDiag:
 WinnerFound:
 	beq	$s5, 2, TwoPlayerWinner	#if the game is 2-player mode ($s5 = 2), then go to 2-P Printer
 	
-	beq	$s0, $s6, PlayerWinner
-	beq	$s0, $s7, ComputerWinner
+	beq	$s0, 79, PlayerWinner
+	beq	$s0, 88, ComputerWinner
 	j	LogicalError
 
 PlayerWinner:	
@@ -724,8 +751,8 @@ ComputerWinner:
 	j	EndGame
 
 TwoPlayerWinner:
-	beq	$s0, $s6, Player1Wins
-	beq	$s0, $s7, Player2Wins
+	beq	$s0, 79, Player1Wins
+	beq	$s0, 88, Player2Wins
 	j	LogicalError
 	
 Player1Wins:
