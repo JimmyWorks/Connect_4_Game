@@ -1,4 +1,6 @@
 		.data
+
+Bitmap:		.space	16384		#reserves a block of 4096 bytes for 64 x 64 pixel board		
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 WinCondition:	.word	4		#Number of Tokens to Win
@@ -31,6 +33,24 @@ Newline:	.asciiz			"\n"
 		.globl	main
 		.text		
 		
+#================== Setting up Bitmap Display ======================================
+#
+#	Please make sure to follow these directions or MARS will crash!!
+#
+#	1. Go to Tools > Bitmap Display
+#
+#	2. Select following options for Bitmap Display:
+#		a. Unit Width in Pixels: 8
+#		b. Unit Height in Pixels: 8
+#		c. Display Width in Pixels: 512
+#		d. Display Height in Pixels: 512
+# IMPORTANT!!   e. Base address for display: 0x10010000 (static data)
+#
+# 	3. Click "Connect to MIPS"
+#
+#	NOTE: If you try to skip step 3 and connect after MIPS is already running the
+#	      program, the program will freeze and a force shutdown will be needed!!
+#									
 #============================== Notes ==============================================
 #	$s0 = used globally to keep track of current turn
 #	    = 79 for player turn
@@ -56,9 +76,9 @@ Newline:	.asciiz			"\n"
 #	      0   1   2   3   4   5   6   (note: do not need to multiply by size of element since elements
 #		   COLUMNS		   	are characters (size = 1 byte))
 #====================================================================================
-
-
-main:
+  	
+	
+main:   
 	# Global Constants for Loading Token or Checking Current Turn
 	lw	$s6, Player		#Holder for player token
 	lw	$s7, Computer		#Holder for computer token
@@ -69,6 +89,7 @@ main:
 	
 NewGame:
 	jal 	InitializeGame		#Call to Initialize New Game
+	jal	InitializeBitmap	#Initialize the Bitmap for the Gameboard Display
 	jal	SelectGameMode		#select game mode
 	jal 	PrintBoard		#print the initial blank board
 	jal	SetFirstMove		#Set first move depending on difficulty mode, if 1-player mode
@@ -165,6 +186,88 @@ InitializeGame:
 	
 	jr	$ra		
 
+InitializeBitmap:
+# Colors for Bitmap Display:
+#	Red:		0x00FF0000
+#	Blue:		0x003333FF
+#	White:		0x00FFFFFF
+#	Yellow:		0x00FFFF00
+#	Green:		0x0000FF00
+#	Black:		0x00000000
+
+ClearBoard:
+	li 	$t0, 0			# $t0, x = 0 (initialize x-coor, the pixel rows)
+    	li 	$t1, 0			# $t1, y = 0 (initialize y-coor, the pixel columns)    	  	
+    	li	$t5, 0x00000000		# $t5 holds the 24-bit RGB, here it's black
+    	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
+
+	ClearBitmapLoop:    	
+    	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+    	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
+  	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
+    	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
+    	beq	$t1, 63, bitmapnextrow	# If printed last pixel in row, go to cycle next row
+    	add	$t1, $t1, 1		# Otherwise, go to next pixel
+    	j	ClearBitmapLoop		# Print it again
+    	
+	bitmapnextrow:			# If last pixel in row,
+	beq	$t0, 63, PrintBitmapDividers	# If currently in last row, go to next routine
+	li	$t1, 0			# Else, reset column index to zero
+	add	$t0, $t0, 1		# And add 1 to the row index
+	j	ClearBitmapLoop		# Go back to print next row
+
+  PrintBitmapDividers:	
+     PrintBitmapLatBars:
+	li	$t0, 0			# $t0, x = 0 (initialize x-coor, the pixel rows)
+	li	$t1, 0			# $t1, y = 0 (initialize y-coor, the pixel columns) 
+	li	$t5, 0x003333FF		# $t5 holds the 24-bit RGB, here it's blue
+	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
+
+	LatBarsBitmapLoop:    	
+    	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+    	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
+  	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
+    	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
+    	beq	$t1, 63, NextLatBar	# If printed last pixel in row, go to cycle next row
+    	add	$t1, $t1, 1		# Otherwise, go to next pixel
+    	j	LatBarsBitmapLoop	# Print it again
+    	
+	NextLatBar:			# If last pixel in row,
+	beq	$t0, 63, PrintBitmapLongBars	# If currently in last row, go to next routine
+	li	$t1, 0			# Else, reset column index to zero
+	bge	$t0, 54, LastLatBars	# If in rows 54-63, print every row incrementing in LastLatBars
+	add	$t0, $t0, 9		# Else, save 8 pixels for game token and print next bar, x = x + 9
+	j	LatBarsBitmapLoop	# Go back to print row
+	
+	LastLatBars:			# If in the last 54-63 rows,
+	add	$t0, $t0, 1		# x = x + 1, print every row
+	j	LatBarsBitmapLoop	# Go back to print it
+	
+     PrintBitmapLongBars:
+   	li	$t0, 0			# $t0, x = 0 (initialize x-coor, the pixel rows)
+   	li	$t1, 0			# $t1, y = 0 (initialize y-coor, the pixel columns) 
+	li	$t5, 0x003333FF		# $t5 holds the 24-bit RGB, here it's blue
+	li	$t6, 256		# $t6 holds max bytes for a 64-pixel dimension (64 words = 256 bytes)
+	   	
+   	LongBarsBitmapLoop:
+   	mul	$t2, $t0, $t6		# Get the current row index ( x * 256 bytes)
+    	sll	$t3, $t1, 2		# Get the current col index ( y * 4 bytes)
+  	add	$t7, $t2, $t3		# Get the current pixel location ( x + y )
+    	sw	$t5, 0x10010000($t7)	# Add the pixel location offset to base address of bitmap display space and store color there
+    	beq	$t0, 54, NextLongBar	# If current pixel is at row 54, go to next long bar
+    	add	$t0, $t0, 1		# Else, print next pixel down, x = x + 1
+    	j	LongBarsBitmapLoop	# Go back to print it
+    	
+	NextLongBar:			# If current long bar is done printing,
+	beq	$t1, 63, JumpReturn	# If last long bar in the row, return to main routine
+	li	$t0, 0			# Else, reset x index to zero
+	add	$t1, $t1, 9		# Save 8 pixels for the game token and print next bar, y = y + 9
+	j	LongBarsBitmapLoop	# Go back to print it
+
+
+JumpReturn:
+	jr	$ra			# Jump Return for branch statements
+
 SetFirstMove:
 PlayerMovesFirst:
 	beq	$s5, 5, ComMovesFirst	#If Game Mode 5 (1P and Hard Mode), Computer moves first.  Else, P1 moves first
@@ -213,9 +316,6 @@ HardMode:	#In-Progress....
 	jal	BottomWinCheck
 		bne	$s1, $0, BestMove
 	
-	jal	CenterCheck				#strategic control of center column
-		bne	$s1, $0, BestMove
-	
 	lw	$ra, 0($sp)
 	addi	$sp, $sp, 4
 	
@@ -247,12 +347,6 @@ FirstMoveCheck:
 	lw	$t0, 12($t0)
 				
 	beq	$t0, $0, Select4
-	jr	$ra
-	
-CenterCheck:				#not tested but should place ai move on column 4 before randomly placing move
-	addi	$t4, $0, 12  
-	lw	$t0, ClCount($t4)			
-	bne	$t0, 6, Select4
 	jr	$ra
 
 Bottom3Check:
