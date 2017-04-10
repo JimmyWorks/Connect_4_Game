@@ -517,9 +517,23 @@ InvalidInput:				#this label is used by different jump calls, but is also automa
 	
 InvalidPlayerMove:	
 	teqi	$zero, 0
+	
 	#li	$v0, 4			#system call code for Print String
 	#la	$a0,InvalidMsg  	#load address of invalid move message
-	#syscall				#print invalid move message	
+	#syscall				#print invalid move message
+Wrongmovessound:
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall 
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall	
 	j	PlayerMove		#return
 
 InvalidCompMove:
@@ -960,6 +974,7 @@ PlayerWinner:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WinMsg 		#load address of win message
 	syscall				#print
+	jal	Victorysound		#play sound
 	j	EndGame
 	
 ComputerWinner:
@@ -971,6 +986,7 @@ ComputerWinner:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, LoseMsg 		#load address of win message
 	syscall				#print
+	jal	Gameoversound		#play sound
 	j	EndGame
 
 TwoPlayerWinner:
@@ -1019,6 +1035,134 @@ Player2Wins:
 	la	$a0, P2WinMsg 		#load address of win message
 	syscall				#print
 	j	EndGame
+	#Music
+Gameoversound:
+	addi $a0, $zero, 79
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 67
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall   
+	addi $a0, $zero, 72
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 76
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 75
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 68
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 84
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 71
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 81
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 72
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 76
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 81
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 79
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 72
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 74
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 76
+	addi $a1, $zero, 300
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	jr	$ra
+	
+Victorysound:
+	addi $a0, $zero, 69
+	addi $a1, $zero, 250
+	addi $a2, $zero, 5
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall
+	addi $a0, $zero, 70
+	addi $a1, $zero, 250
+	addi $a2, $zero, 5
+	addi $a3, $zero, 95
+	li $v0, 33
+	syscall 
+	addi $a0, $zero, 71
+	addi $a1, $zero, 250
+	addi $a2, $zero, 5
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall 
+	addi $a0, $zero, 72
+	addi $a1, $zero, 750
+	addi $a2, $zero, 5
+	addi $a3, $zero, 110
+	li $v0, 33
+	syscall  
+	jr	$ra
+
+
 	
 EndGame:
 	li	$v0, 4			#system call code for Print String
