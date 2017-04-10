@@ -4,10 +4,22 @@ Bitmap:		.space	16384
 #Pixel Indexes in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
 #Pixel indexes below are the column numbers on Bitmap Display
 BitmapNumbers:	.word	3524,3525,3533,3534,3542,3543,3550,3553,3559,3560,3561,3562,3569,3570,3577,3578,3579,3580,3589,3596
-BitmapNumbers1:	.word	3599,3605,3608,3614,3617,3623,3632,3635,3644,3653,3663,3669,3672,3678,3681,3687,3696,3708,3717,3726
-BitmapNumbers2:	.word	3735,3742,3743,3744,3745,3752,3753,3760,3761,3762,3771,3781,3789,3797,3800,3809,3818,3824,3827,3835
-BitmapNumbers3:	.word	3845,3852,3861,3864,3873,3882,3888,3891,3899,3908,3909,3910,3916,3917,3918,3919,3926,3927,3937,3943
-BitmapNumbers4:	.word	3944,3945,3953,3954,3963
+BitmapNumbers1:	.word	3599,3605,3608,3614,3617,3623,3632,3635,3644,3653,3663,3672,3678,3681,3687,3696,3708,3717,3726,3735
+BitmapNumbers2:	.word	3742,3743,3744,3745,3752,3753,3760,3761,3762,3771,3781,3789,3800,3809,3818,3824,3827,3835,3845,3852
+BitmapNumbers3:	.word	3861,3864,3873,3882,3888,3891,3899,3908,3909,3910,3916,3917,3918,3919,3926,3927,3937,3943,3944,3945
+BitmapNumbers4:	.word	3953,3954,3963
+
+#Pixel indexes below are for printing, "You Win!"
+BitmapYouWin: 	.word 	1617,1619,1622,1623,1626,1629,1632,1636,1638,1640,1644,1646,1681,1683,1685,1688,1690,1693,1696,1698
+BitmapYouWin1: 	.word 	1700,1702,1704,1705,1708,1710,1746,1749,1752,1754,1757,1760,1762,1764,1766,1768,1770,1772,1774,1810
+BitmapYouWin2: 	.word 	1813,1816,1818,1821,1824,1826,1828,1830,1832,1835,1836,1874,1878,1879,1883,1884,1889,1891,1894,1896
+BitmapYouWin3: 	.word 	1900,1902
+
+#Pixel indexes below are for printing, "You Lose!"
+BitmapYouLose: 	.word 	1616,1680,1745,1809,1873,1618,1682,1625,1689,1753,1817,1628,1692,1756,1820,1631,1695,1759,1823,1887
+BitmapYouLose1: .word 	1882,1888,1883,1889,1684,1748,1812,1687,1751,1815,1621,1877,1622,1878,1635,1636,1639,1640,1641,1643
+BitmapYouLose2: .word 	1644,1645,1647,1698,1701,1703,1707,1711,1762,1765,1768,1771,1772,1775,1826,1829,1833,1835,1891,1892
+BitmapYouLose3: .word 	1895,1896,1899,1900,1901,1903	
 
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
@@ -84,6 +96,14 @@ Newline:	.asciiz			"\n"
 #	$s4 = current move's row index
 #	$s5 = game mode, 1 - 1 player, 2 - 2 player --- For 1P modes: 3 - Easy Mode, 4 - Normal Mode, 5 - Hard Mode
 #	$s6 = color of current turn (0x00FFFF00, yellow for P1, 0x00FF0000, red for P2)
+#
+# Colors for Bitmap Display:
+#	Red:		0x00FF0000
+#	Blue:		0x003333FF
+#	White:		0x00FFFFFF
+#	Yellow:		0x00FFFF00
+#	Green:		0x0000FF00
+#	Black:		0x00000000
 #
 #================== How to Use Column and Row Indexing =============================
 #
@@ -332,8 +352,8 @@ PrintBMNumbers:
 	#syscall					   #
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
   
-  	beq	$t0, 85, JumpReturn
-  	
+  	beq	$t0, 83, JumpReturn
+
   	sll	$t1, $t0, 2
   	add	$t2, $t1, $t3
   	lw	$t2, ($t2)
@@ -876,19 +896,94 @@ CheckPosDiag:
 	jr	$ra			#No winner found, return to game loop
 	
 WinnerFound:
+	jal	BitmapEndGameBar	#Print white announcement bar (Note: $ra to game loop lost)
 	beq	$s5, 2, TwoPlayerWinner	#if the game is 2-player mode ($s5 = 2), then go to 2-P Printer
 	
 	beq	$s0, 79, PlayerWinner
 	beq	$s0, 88, ComputerWinner
 	j	LogicalError
 
-PlayerWinner:	
+BitmapEndGameBar:
+#Print white bar at bitmap row starting at pixel 1472 ending 9 rows down
+#Starting address: 0x10010000 + 1472*4 = 0x10011700
+	li	$t0, 0
+	li	$t1, 0
+	li	$t2, 0x10011700
+	li	$t6, 0x00C8C8C8
+  BMEndGameBarLoop:
+	beq	$t0, 9, JumpReturn
+	beq	$t1, 64, NextBMEndRow
+	
+	sll	$t3, $t0, 6
+	add	$t3, $t3, $t1
+	sll	$t3, $t3, 2
+	
+	lw	$t4, 0x10011700($t3)
+	beq	$t4, 0x003333FF, DimBlue
+	beq	$t4, 0x00FFFF00, DimYellow
+	beq	$t4, 0x00FF0000, DimRed
+	sw	$t6, 0x10011700($t3)	
+    ContEndGameBar:	
+	add	$t1, $t1, 1
+	j	BMEndGameBarLoop
+    DimBlue:
+    	li	$t5, 0x00FBFBFF
+    	sw	$t5, 0x10011700($t3)
+    	j	ContEndGameBar
+    DimYellow:
+        li	$t5, 0x00FFFFC8
+    	sw	$t5, 0x10011700($t3)
+    	j	ContEndGameBar
+    DimRed:	
+        li	$t5, 0x00FFC8C8
+    	sw	$t5, 0x10011700($t3)
+    	j	ContEndGameBar
+	
+  NextBMEndRow:
+	add	$t0, $t0, 1
+	li	$t1, 0
+	j	BMEndGameBarLoop
+
+PrintBitmapYouWin:
+	li	$t0, 0
+	li	$t4, 0x00000000
+	la	$t3, BitmapYouWin
+  PrintYouWinLoop:
+  	beq	$t0, 62, JumpReturn
+
+  	sll	$t1, $t0, 2
+  	add	$t2, $t1, $t3
+  	lw	$t2, ($t2)
+  	sll	$t2, $t2, 2
+  	sw	$t4, 0x10010000($t2)  	
+  	add	$t0, $t0, 1
+	j	PrintYouWinLoop
+
+PrintBitmapYouLose:
+	li	$t0, 0
+	li	$t4, 0x00000000
+	la	$t3, BitmapYouLose
+  PrintYouLoseLoop:
+  	beq	$t0, 66, JumpReturn
+
+  	sll	$t1, $t0, 2
+  	add	$t2, $t1, $t3
+  	lw	$t2, ($t2)
+  	sll	$t2, $t2, 2
+  	sw	$t4, 0x10010000($t2)  	
+  	add	$t0, $t0, 1
+	j	PrintYouLoseLoop
+
+
+PlayerWinner:
+	jal	PrintBitmapYouWin	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WinMsg 		#load address of win message
 	syscall				#print
 	j	EndGame
 	
 ComputerWinner:
+	jal	PrintBitmapYouLose
 	li	$v0, 4			#system call code for Print String
 	la	$a0, LoseMsg 		#load address of win message
 	syscall				#print
@@ -900,12 +995,14 @@ TwoPlayerWinner:
 	j	LogicalError
 	
 Player1Wins:
+	jal	PrintBitmapYouWin
 	li	$v0, 4			#system call code for Print String
 	la	$a0, P1WinMsg		#load address of win message
 	syscall				#print
 	j	EndGame
 	
 Player2Wins:	
+	jal	PrintBitmapYouWin
 	li	$v0, 4			#system call code for Print String
 	la	$a0, P2WinMsg 		#load address of win message
 	syscall				#print
