@@ -1,25 +1,40 @@
 		.data
 #Reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
 Bitmap:		.space	16384
-#Pixel Indexes in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
-#Pixel indexes below are the column numbers on Bitmap Display
+#Pixel Indices in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
+#Pixel indices below are the column numbers on Bitmap Display (array length: 83 words)
 BitmapNumbers:	.word	3524,3525,3533,3534,3542,3543,3550,3553,3559,3560,3561,3562,3569,3570,3577,3578,3579,3580,3589,3596
 BitmapNumbers1:	.word	3599,3605,3608,3614,3617,3623,3632,3635,3644,3653,3663,3672,3678,3681,3687,3696,3708,3717,3726,3735
 BitmapNumbers2:	.word	3742,3743,3744,3745,3752,3753,3760,3761,3762,3771,3781,3789,3800,3809,3818,3824,3827,3835,3845,3852
 BitmapNumbers3:	.word	3861,3864,3873,3882,3888,3891,3899,3908,3909,3910,3916,3917,3918,3919,3926,3927,3937,3943,3944,3945
 BitmapNumbers4:	.word	3953,3954,3963
 
-#Pixel indexes below are for printing, "You Win!"
+#Pixel indices for printing, "You Win!" (array length: 62 words)
 BitmapYouWin: 	.word 	1617,1619,1622,1623,1626,1629,1632,1636,1638,1640,1644,1646,1681,1683,1685,1688,1690,1693,1696,1698
 BitmapYouWin1: 	.word 	1700,1702,1704,1705,1708,1710,1746,1749,1752,1754,1757,1760,1762,1764,1766,1768,1770,1772,1774,1810
 BitmapYouWin2: 	.word 	1813,1816,1818,1821,1824,1826,1828,1830,1832,1835,1836,1874,1878,1879,1883,1884,1889,1891,1894,1896
 BitmapYouWin3: 	.word 	1900,1902
 
-#Pixel indexes below are for printing, "You Lose!"
+#Pixel indices for printing, "You Lose!" (array length: 66 words)
 BitmapYouLose: 	.word 	1616,1680,1745,1809,1873,1618,1682,1625,1689,1753,1817,1628,1692,1756,1820,1631,1695,1759,1823,1887
 BitmapYouLose1: .word 	1882,1888,1883,1889,1684,1748,1812,1687,1751,1815,1621,1877,1622,1878,1635,1636,1639,1640,1641,1643
 BitmapYouLose2: .word 	1644,1645,1647,1698,1701,1703,1707,1711,1762,1765,1768,1771,1772,1775,1826,1829,1833,1835,1891,1892
 BitmapYouLose3: .word 	1895,1896,1899,1900,1901,1903	
+
+#Pixel indices for printing, "Player" (array length: 57 words)
+BitmapPlayer:	.word	1607,1608,1609,1611,1616,1617,1620,1622,1624,1625,1626,1628,1629,1630,1671,1673,1675,1679,1682,1684
+BitmapPlayer1:	.word	1686,1688,1692,1694,1735,1736,1737,1739,1743,1744,1745,1746,1749,1752,1753,1756,1757,1799,1803,1807
+BitmapPlayer2:	.word	1810,1813,1816,1820,1822,1863,1867,1868,1869,1871,1874,1877,1880,1881,1882,1884,1886
+#Pixel indices for printing, "1" (array length: 8 words)
+BitmapNo1:	.word	1633,1634,1698,1762,1826,1890,1889,1891
+
+#Pixel indices for printing, "2" (array length: 10 words)
+BitmapNo2:	.word	1633,1634,1762,1825,1889,1635,1699,1763,1890,1891
+
+#Pixel indices for printing, "Wins!" (array length: 43 words)
+BitmapWins:	.word	1638,1642,1644,1646,1650,1652,1653,1654,1656,1702,1704,1706,1708,1710,1711,1714,1716,1720,1766,1768
+BitmapWins1:	.word	1770,1772,1774,1776,1778,1781,1784,1830,1832,1834,1836,1838,1841,1842,1846,1895,1897,1900,1902,1906
+BitmapWins2:	.word	1908,1909,1912
 
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
@@ -51,7 +66,7 @@ InvalDiffMsg:	.asciiz			"Invalid game difficulty selected.  Please try again: "
 PlayerMoveMsg:	.asciiz			"Please pick a column: \n"
 SystemError:	.asciiz			"Program has encountered a system error. \n"
 FullColMsg:	.asciiz			"That column is full.  Try again. \n"
-InvalidMsg:	.asciiz			"Invalid selection.  Please try again. \n"
+InvalidMsg:	.asciiz			"Invalid selection.  Please try again333. \n"
 InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMsg:		.asciiz			"\n\n====================\n\nCongratulations!  You WIN!! \n\n====================\n\n"
@@ -65,7 +80,25 @@ DEBUG3:		.asciiz			"DEBUG3: "
 DEBUG4:		.asciiz			"Switching players: "
 Newline:	.asciiz			"\n"
 		.globl	main
-		.text		
+		
+		
+		.ktext 0x80000180
+   	move $k0,$v0   # Save $v0 value
+   	move $k1,$a0   # Save $a0 value
+   	
+   	la   $a0, ExceptionMsg  # address of string to print
+   	li   $v0, 4    # Print String service
+   	syscall
+   	
+   	move $v0,$k0   # Restore $v0
+   	move $a0,$k1   # Restore $a0
+  	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
+   	addi $k0,$k0,4 # Add 4 to point to next instruction
+   	mtc0 $k0,$14   # Store new address back into $14
+   	eret           # Error return; set PC to value in $14
+   	
+   		.kdata	
+ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
 		
 #================== Setting up Bitmap Display ======================================
 #
@@ -118,7 +151,7 @@ Newline:	.asciiz			"\n"
 #		   COLUMNS		   	are characters (size = 1 byte))
 #====================================================================================
   	
-	
+		.text	
 main:   
 	
 	li	$v0, 4			#system call code for Print String
@@ -197,40 +230,12 @@ SwitchPlayers:
 		
 	SwitchToCPU:
 	li	$s0, 88
-	li	$s6, 0x00FF0000	
-	
-		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	li	$v0, 4					   #
-	la	$a0, DEBUG4 				   #	
-	syscall					   #
-							   #
-	li	$v0, 1					   #		
-	add	$a0, $s6, $0	#select register to check  #
-	syscall				  	   #
-							   #
-	li	$v0, 4					   #		
-	la	$a0, Newline				   #	
-	syscall					   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
-	
+	li	$s6, 0x00FF0000		
 	jr	$ra	
 	SwitchToPlayer:
 	li	$s0, 79
 	li	$s6, 0x00FFFF00
 	
-		#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	li	$v0, 4					   #
-	la	$a0, DEBUG4 				   #	
-	syscall					   #
-							   #
-	li	$v0, 1					   #		
-	add	$a0, $s6, $0	#select register to check  #
-	syscall				  	   #
-							   #
-	li	$v0, 4					   #		
-	la	$a0, Newline				   #	
-	syscall					   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
 	jr	$ra
 
 InitializeGame:																		
@@ -334,33 +339,17 @@ ClearBoard:
 	j	LongBarsBitmapLoop	# Go back to print it
 	
 PrintBMNumbers:
-	li	$t0, 0
-	li	$t4, 0x00FFFFFF
-	la	$t3, BitmapNumbers
-  PrintBMNumLoop:
-  	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	#li	$v0, 4					   #
-	#la	$a0, DEBUG 				   #	
-	#syscall					   #
-							   #
-	#li	$v0, 1					   #		
-	#add	$a0, $t0, $0	#select register to check  #
-	#syscall				  	   #
-							   #
-	#li	$v0, 4					   #		
-	#la	$a0, Newline				   #	
-	#syscall					   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
-  
-  	beq	$t0, 83, JumpReturn
-
-  	sll	$t1, $t0, 2
-  	add	$t2, $t1, $t3
-  	lw	$t2, ($t2)
-  	sll	$t2, $t2, 2
-  	sw	$t4, 0x10010000($t2)  	
-  	add	$t0, $t0, 1
-	j	PrintBMNumLoop
+	add	$sp, $sp, -4
+	sw	$ra, 0($sp)
+	
+	la	$a0, BitmapNumbers
+	li	$a1, 83
+	li	$a2, 0x00FFFFFF
+	jal	BitmapPrint
+	
+	lw	$ra, 0($sp)
+	add	$sp, $sp, 4
+	jr	$ra
 
 JumpReturn:
 	jr	$ra			# Jump Return for branch statements
@@ -527,9 +516,10 @@ InvalidInput:				#this label is used by different jump calls, but is also automa
 	j	LogicalError		#print system error if $s0 is not player or computer
 	
 InvalidPlayerMove:	
-	li	$v0, 4			#system call code for Print String
-	la	$a0,InvalidMsg  	#load address of invalid move message
-	syscall				#print invalid move message	
+	teqi	$zero, 0
+	#li	$v0, 4			#system call code for Print String
+	#la	$a0,InvalidMsg  	#load address of invalid move message
+	#syscall				#print invalid move message	
 	j	PlayerMove		#return
 
 InvalidCompMove:
@@ -903,6 +893,23 @@ WinnerFound:
 	beq	$s0, 88, ComputerWinner
 	j	LogicalError
 
+BitmapPrint:
+	# $a0 must be initialized to starting address of array of pixel indices to change
+	# $a1 must be initialized to number of word addresses in array of pixel indices
+	# $a2 must be intialized with color to store in each pixel
+	li	$t2, 0
+  BitmapPrintLoop:
+  	beq	$t2, $a1, JumpReturn
+
+  	sll	$t3, $t2, 2
+  	add	$t4, $t3, $a0
+  	lw	$t4, ($t4)
+  	sll	$t4, $t4, 2
+  	sw	$a2, 0x10010000($t4)  	
+  	add	$t2, $t2, 1
+	j	BitmapPrintLoop
+	
+
 BitmapEndGameBar:
 #Print white bar at bitmap row starting at pixel 1472 ending 9 rows down
 #Starting address: 0x10010000 + 1472*4 = 0x10011700
@@ -944,46 +951,23 @@ BitmapEndGameBar:
 	li	$t1, 0
 	j	BMEndGameBarLoop
 
-PrintBitmapYouWin:
-	li	$t0, 0
-	li	$t4, 0x00000000
-	la	$t3, BitmapYouWin
-  PrintYouWinLoop:
-  	beq	$t0, 62, JumpReturn
-
-  	sll	$t1, $t0, 2
-  	add	$t2, $t1, $t3
-  	lw	$t2, ($t2)
-  	sll	$t2, $t2, 2
-  	sw	$t4, 0x10010000($t2)  	
-  	add	$t0, $t0, 1
-	j	PrintYouWinLoop
-
-PrintBitmapYouLose:
-	li	$t0, 0
-	li	$t4, 0x00000000
-	la	$t3, BitmapYouLose
-  PrintYouLoseLoop:
-  	beq	$t0, 66, JumpReturn
-
-  	sll	$t1, $t0, 2
-  	add	$t2, $t1, $t3
-  	lw	$t2, ($t2)
-  	sll	$t2, $t2, 2
-  	sw	$t4, 0x10010000($t2)  	
-  	add	$t0, $t0, 1
-	j	PrintYouLoseLoop
-
-
 PlayerWinner:
-	jal	PrintBitmapYouWin	
+	la	$a0, BitmapYouWin	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 62			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+		
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WinMsg 		#load address of win message
 	syscall				#print
 	j	EndGame
 	
 ComputerWinner:
-	jal	PrintBitmapYouLose
+	la	$a0, BitmapYouLose	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 66			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated	
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, LoseMsg 		#load address of win message
 	syscall				#print
@@ -995,14 +979,42 @@ TwoPlayerWinner:
 	j	LogicalError
 	
 Player1Wins:
-	jal	PrintBitmapYouWin
+	la	$a0, BitmapPlayer	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 57			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	la	$a0, BitmapNo1		# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 8			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	la	$a0, BitmapWins	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 43			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, P1WinMsg		#load address of win message
 	syscall				#print
 	j	EndGame
 	
 Player2Wins:	
-	jal	PrintBitmapYouWin
+	la	$a0, BitmapPlayer	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 57			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	la	$a0, BitmapNo2		# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 10			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	la	$a0, BitmapWins	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 43			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, P2WinMsg 		#load address of win message
 	syscall				#print
@@ -1021,7 +1033,7 @@ EndGame:
 	beq	$t1, 1, NewGame		#return to begining (NOT DONE)
 	
 	li	$v0, 4			#system call code for Print String
-	la	$a0,InvalidMsg  	#load address of invalid message
+	la	$a0, InvalidMsg  	#load address of invalid message
 	syscall				#print invalid message
 	j	EndGameLoop
 
