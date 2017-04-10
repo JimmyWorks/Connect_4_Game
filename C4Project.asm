@@ -1,6 +1,14 @@
 		.data
+#Reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
+Bitmap:		.space	16384
+#Pixel Indexes in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
+#Pixel indexes below are the column numbers on Bitmap Display
+BitmapNumbers:	.word	3524,3525,3533,3534,3542,3543,3550,3553,3559,3560,3561,3562,3569,3570,3577,3578,3579,3580,3589,3596
+BitmapNumbers1:	.word	3599,3605,3608,3614,3617,3623,3632,3635,3644,3653,3663,3669,3672,3678,3681,3687,3696,3708,3717,3726
+BitmapNumbers2:	.word	3735,3742,3743,3744,3745,3752,3753,3760,3761,3762,3771,3781,3789,3797,3800,3809,3818,3824,3827,3835
+BitmapNumbers3:	.word	3845,3852,3861,3864,3873,3882,3888,3891,3899,3908,3909,3910,3916,3917,3918,3919,3926,3927,3937,3943
+BitmapNumbers4:	.word	3944,3945,3953,3954,3963
 
-Bitmap:		.space	16384		#reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 WinCondition:	.word	4		#Number of Tokens to Win
@@ -11,7 +19,19 @@ Computer:	.word	88		#Computer marker and also ascii value for 'X'
 #===================================================================================
 WinCondBool:	.byte	0		#1 if true, 0 if false
 
-WelcomeBanner:	.asciiz			"\n\n=================================================================================================\n\n  /$$$$$$                                                      /$$           /$$   /$$\n /$$__  $$                                                    | $$          | $$  | $$\n| $$  \\__/  /$$$$$$  /$$$$$$$  /$$$$$$$   /$$$$$$   /$$$$$$$ /$$$$$$        | $$  | $$\n| $$       /$$__  $$| $$__  $$| $$__  $$ /$$__  $$ /$$_____/|_  $$_/        | $$$$$$$$\n| $$      | $$  \\ $$| $$  \\ $$| $$  \\ $$| $$$$$$$$| $$        | $$          |_____  $$\n| $$    $$| $$  | $$| $$  | $$| $$  | $$| $$_____/| $$        | $$ /$$            | $$\n|  $$$$$$/|  $$$$$$/| $$  | $$| $$  | $$|  $$$$$$$|  $$$$$$$  |  $$$$/            | $$\n \\______/  \\______/ |__/  |__/|__/  |__/ \\_______/ \\_______/   \\___/              |__/\n\n=================================================================================================\n\nWelcome to Connect 4!\n\n\n"
+#Welcome Banner for the Run I/O
+WelcomeBanner:	.ascii			"\n\n=================================================================================================\n"
+WelcomeBanner1:	.ascii			"\n  /$$$$$$                                                      /$$           /$$   /$$"
+WelcomeBanner2:	.ascii			"\n /$$__  $$                                                    | $$          | $$  | $$"
+WelcomeBanner3:	.ascii			"\n| $$  \\__/  /$$$$$$  /$$$$$$$  /$$$$$$$   /$$$$$$   /$$$$$$$ /$$$$$$        | $$  | $$"
+WelcomeBanner4:	.ascii			"\n| $$       /$$__  $$| $$__  $$| $$__  $$ /$$__  $$ /$$_____/|_  $$_/        | $$$$$$$$"
+WelcomeBanner5:	.ascii			"\n| $$      | $$  \\ $$| $$  \\ $$| $$  \\ $$| $$$$$$$$| $$        | $$          |_____  $$"
+WelcomeBanner6:	.ascii			"\n| $$    $$| $$  | $$| $$  | $$| $$  | $$| $$_____/| $$        | $$ /$$            | $$"
+WelcomeBanner7:	.ascii			"\n|  $$$$$$/|  $$$$$$/| $$  | $$| $$  | $$|  $$$$$$$|  $$$$$$$  |  $$$$/            | $$"
+WelcomeBanner8:	.ascii			"\n \\______/  \\______/ |__/  |__/|__/  |__/ \\_______/ \\_______/   \\___/              |__/"
+WelcomeBanner9:	.ascii			"\n\n=================================================================================================\n\n"
+WelcomeBanner10:.asciiz			"Welcome to Connect 4!\n\n\n"
+
 SelectMode:	.asciiz			"Please select a game mode:\n\n1 - 1 Player\n2 - 2 Players\n\n"
 InvalidModeMsg:	.asciiz			"Invalid game mode selected.  Please try again: "
 SelectDifficult:.asciiz			"\nPlease select a difficulty\n\n1 - Easy Mode\n2 - Normal Mode\n3 - Hard Mode\n\n"
@@ -288,11 +308,39 @@ ClearBoard:
     	j	LongBarsBitmapLoop	# Go back to print it
     	
 	NextLongBar:			# If current long bar is done printing,
-	beq	$t1, 63, JumpReturn	# If last long bar in the row, return to main routine
+	beq	$t1, 63, PrintBMNumbers	# If last long bar in the row, return to main routine
 	li	$t0, 0			# Else, reset x index to zero
 	add	$t1, $t1, 9		# Save 8 pixels for the game token and print next bar, y = y + 9
 	j	LongBarsBitmapLoop	# Go back to print it
-
+	
+PrintBMNumbers:
+	li	$t0, 0
+	li	$t4, 0x00FFFFFF
+	la	$t3, BitmapNumbers
+  PrintBMNumLoop:
+  	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
+	#li	$v0, 4					   #
+	#la	$a0, DEBUG 				   #	
+	#syscall					   #
+							   #
+	#li	$v0, 1					   #		
+	#add	$a0, $t0, $0	#select register to check  #
+	#syscall				  	   #
+							   #
+	#li	$v0, 4					   #		
+	#la	$a0, Newline				   #	
+	#syscall					   #
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+  
+  	beq	$t0, 85, JumpReturn
+  	
+  	sll	$t1, $t0, 2
+  	add	$t2, $t1, $t3
+  	lw	$t2, ($t2)
+  	sll	$t2, $t2, 2
+  	sw	$t4, 0x10010000($t2)  	
+  	add	$t0, $t0, 1
+	j	PrintBMNumLoop
 
 JumpReturn:
 	jr	$ra			# Jump Return for branch statements
@@ -591,20 +639,6 @@ UpdateBitmap:				# Update Current Game Board with Last Token Placment
 	sll	$t1, $t1, 6		# Multiply by 64 pixels per row to get to first pixel in correct row
 	add	$t0, $t0, $t1		# Add column pixel offset
 	sll	$t0, $t0, 2		# Multiply by 4 to get full offset in bytes (4 bytes per pixel)
-	
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========	
-	#li	$v0, 4					   #
-	#la	$a0, DEBUG 				   #	
-	#syscall					   #
-							   #
-	#li	$v0, 1					   #		
-	#add	$a0, $t0, $0	#select register to check  #
-	#syscall				  	   #
-							   #
-	#li	$v0, 4					   #		
-	#la	$a0, Newline				   #	
-	#syscall					   #
-	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
 	
 	add	$t0, $t0, 0x10010000	# Add total offset to the base address
 
