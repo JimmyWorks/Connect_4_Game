@@ -1,4 +1,7 @@
 		.data
+#=========================================================================================================================
+#	Bitmap Display Mapping
+#=========================================================================================================================
 #Reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
 Bitmap:		.space	16384
 #Pixel Indices in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
@@ -35,16 +38,64 @@ BitmapNo2:	.word	1633,1634,1762,1825,1889,1635,1699,1763,1890,1891
 BitmapWins:	.word	1638,1642,1644,1646,1650,1652,1653,1654,1656,1702,1704,1706,1708,1710,1711,1714,1716,1720,1766,1768
 BitmapWins1:	.word	1770,1772,1774,1776,1778,1781,1784,1830,1832,1834,1836,1838,1841,1842,1846,1895,1897,1900,1902,1906
 BitmapWins2:	.word	1908,1909,1912
+#=========================================================================================================================
+#	Music and Sound 
+#=========================================================================================================================
+#	How to Implement
+#	
+#	1.	Use the following format for allocating space for all musical details:
+#		Music_Name_NoteCt:	.word	#number of notes
+#		Music_Victory_Note:	.word	#each note value separated by commas
+#		Music_Victory_Dur:	.word	#each note duration separated by commas
+#		Music_Victory_Instr:	.word	#each note instrument separated by commas
+#		Music_Victory_Vol:	.word	#each note volume separated by commas
+#
+#	2.	Instructions needed to implement the sound should be added where it is desired to be played.
+#		The sub-routine that implements this is PlaySound.  Make sure to Jump-and-Link to PlaySound and
+#		save the current return address in the stack, if needed.
+#
+#	3.	The following temporary registeries need to be initialized before the jal call is made:
+#		$t4 -- loaded with number of notes to be played
+#		$t0 -- loaded with base address of duration of note
+#		$t1 -- loaded with base address of array of duration of note
+#		$t2 -- loaded with base address of array of instrument of note
+#		$t3 -- loaded with base address of array of volume of note
+#
+#	Sample:
+#		la	$t4, Music_Victory_NoteCt
+#		lw	$t4, ($t4)		
+#		la	$t0, Music_Victory_Note
+#		la	$t1, Music_Victory_Dur
+#		la	$t2, Music_Victory_Instr
+#		la	$t3, Music_Victory_Vol
+#		jal	PlaySound
+#=========================================================================================================================
+#Victory Sound
+Music_Victory_NoteCt:	.word	4
+Music_Victory_Note:	.word	69, 70, 71, 72
+Music_Victory_Dur:	.word	250, 250, 250, 250
+Music_Victory_Instr:	.word	5, 5, 5, 5
+Music_Victory_Vol:	.word	90, 95, 100, 110
 
+#Defeat Sound
+Music_Defeat_NoteCt:	.word	20
+Music_Defeat_Note:	.word	79,67,72,76,75,68,89,71,81,72,76,71,81,72,76,81,79,72,74,76
+Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
+Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
+Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
+#=========================================================================================================================
+#	GameBoard Memory
+#=========================================================================================================================
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 WinCondition:	.word	4		#Number of Tokens to Win
-#======================== Player Markers ===========================================
+# == Player Markers ===========================================
 #Use these to load marker ascii values and also the values to check for player or computer turn
 Player:		.word   79		#Player marker and also ascii value for 'O'
 Computer:	.word	88		#Computer marker and also ascii value for 'X'
-#===================================================================================
-WinCondBool:	.byte	0		#1 if true, 0 if false
+#=========================================================================================================================
+#	Memory for Printed Strings 
+#=========================================================================================================================
 
 #Welcome Banner for the Run I/O
 WelcomeBanner:	.ascii			"\n\n=================================================================================================\n"
@@ -974,7 +1025,16 @@ PlayerWinner:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, WinMsg 		#load address of win message
 	syscall				#print
-	jal	Victorysound		#play sound
+	
+	la	$t4, Music_Victory_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_Victory_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_Victory_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_Victory_Instr# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_Victory_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
+	
+	
 	j	EndGame
 	
 ComputerWinner:
@@ -986,7 +1046,15 @@ ComputerWinner:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, LoseMsg 		#load address of win message
 	syscall				#print
-	jal	Gameoversound		#play sound
+
+	la	$t4, Music_Defeat_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_Defeat_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_Defeat_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_Defeat_Instr # $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_Defeat_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
+	
 	j	EndGame
 
 TwoPlayerWinner:
@@ -1035,134 +1103,34 @@ Player2Wins:
 	la	$a0, P2WinMsg 		#load address of win message
 	syscall				#print
 	j	EndGame
-	#Music
-Gameoversound:
-	addi $a0, $zero, 79
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 67
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall   
-	addi $a0, $zero, 72
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 76
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 75
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 68
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 84
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 71
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 81
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 72
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 76
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 81
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 79
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 72
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 74
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 76
-	addi $a1, $zero, 300
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	jr	$ra
 	
-Victorysound:
-	addi $a0, $zero, 69
-	addi $a1, $zero, 250
-	addi $a2, $zero, 5
-	addi $a3, $zero, 90
-	li $v0, 33
-	syscall
-	addi $a0, $zero, 70
-	addi $a1, $zero, 250
-	addi $a2, $zero, 5
-	addi $a3, $zero, 95
-	li $v0, 33
+PlaySound:
+	# $t4 must be loaded with number of notes
+	# $t0 must be loaded with base address of array of notes
+	# $t1 must be loaded with base address of array of duration of note
+	# $t2 must be loaded with base address of array of instrument of note
+	# $t3 must be loaded with base address of array of volume of note
+	li	$t5, 0
+	li	$v0, 33
+	
+  SoundLoop:
+  	beq	$t5, $t4, JumpReturn
+  
+	sll	$t6, $t5, 2
+	add	$a0, $t0, $t6
+	add	$a1, $t1, $t6
+	add	$a2, $t2, $t6
+	add	$a3, $t3, $t6
+	
+	lw	$a0, ($a0)
+	lw	$a1, ($a1)
+	lw	$a2, ($a2)
+	lw	$a3, ($a3)
+	
 	syscall 
-	addi $a0, $zero, 71
-	addi $a1, $zero, 250
-	addi $a2, $zero, 5
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall 
-	addi $a0, $zero, 72
-	addi $a1, $zero, 750
-	addi $a2, $zero, 5
-	addi $a3, $zero, 110
-	li $v0, 33
-	syscall  
-	jr	$ra
-
-
+	
+	add	$t5, $t5, 1
+	j	SoundLoop 
 	
 EndGame:
 	li	$v0, 4			#system call code for Print String
