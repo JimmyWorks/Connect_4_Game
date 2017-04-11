@@ -44,11 +44,11 @@ BitmapWins2:	.word	1908,1909,1912
 #	How to Implement
 #	
 #	1.	Use the following format for allocating space for all musical details:
-#		Music_Name_NoteCt:	.word	#number of notes
-#		Music_Victory_Note:	.word	#each note value separated by commas
-#		Music_Victory_Dur:	.word	#each note duration separated by commas
-#		Music_Victory_Instr:	.word	#each note instrument separated by commas
-#		Music_Victory_Vol:	.word	#each note volume separated by commas
+#		Music_<Name>_NoteCt:	.word	#number of notes
+#		Music_<Name>_Note:	.word	#each note value separated by commas
+#		Music_<Name>_Dur:	.word	#each note duration separated by commas
+#		Music_<Name>_Instr:	.word	#each note instrument separated by commas
+#		Music_<Name>_Vol:	.word	#each note volume separated by commas
 #
 #	2.	Instructions needed to implement the sound should be added where it is desired to be played.
 #		The sub-routine that implements this is PlaySound.  Make sure to Jump-and-Link to PlaySound and
