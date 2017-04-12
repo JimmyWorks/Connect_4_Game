@@ -2,6 +2,32 @@
 #=========================================================================================================================
 #	Bitmap Display Mapping
 #=========================================================================================================================
+# 	Setting up Bitmap Display
+#
+#	Please make sure to follow these directions or MARS will crash!!
+#
+#	1. Go to Tools > Bitmap Display
+#
+#	2. Select following options for Bitmap Display:
+#		a. Unit Width in Pixels: 8
+#		b. Unit Height in Pixels: 8
+#		c. Display Width in Pixels: 512
+#		d. Display Height in Pixels: 512
+# IMPORTANT!!   e. Base address for display: 0x10010000 (static data)
+#
+# 	3. Click "Connect to MIPS"
+#
+#	NOTE: If you try to skip step 3 and connect after MIPS is already running the
+#	      program, the program will freeze and a force shutdown will be needed!!
+#
+# 			Colors for Bitmap Display:
+#			Red:		0x00FF0000
+#			Blue:		0x003333FF
+#			White:		0x00FFFFFF
+#			Yellow:		0x00FFFF00
+#			Green:		0x0000FF00
+#			Black:		0x00000000
+#=========================================================================================================================
 #Reserves a block of 4096 bytes for 64 x 64 pixel board	(addresses: 268,500,992 - 268,517,376)
 Bitmap:		.space	16384
 #Pixel Indices in 64x64 pixel Bitmap Display (Pixel Index 0-4093)
@@ -86,11 +112,26 @@ Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
 #=========================================================================================================================
 #	GameBoard Memory
 #=========================================================================================================================
+#	How to Use Column and Row Indexing 
+#
+#	6   |_35|_36|_37|_38|_39|_40|_41|
+#	5   |___|___|_._|_._|_._|_33|_34|
+#   	4   |___|___|_+6|_+7|_+8|___|___|  To get the negative diagonal pieces, +/- 6 from point of reference
+#  ROWS	3   |___|___|_-1|_x_|_+1|___|___|  To get the positive diagonal pieces, +/- 8 from point of reference
+#   	2   |___|___|_-8|_-7|_-6|___|___|  To get the vertical pieces, +/- 7 from point of reference
+#   	1   |_7_|_8_|_._|_._|_._|___|___|  To get the horizontal pieces, +/- 1 from the point of reference
+#	0   |_0_|_1_|_2_|_3_|_4_|_5_|_6_|  where x + starting address of array = address of xth element
+#	      0   1   2   3   4   5   6   (note: do not need to multiply by size of element since elements
+#		   COLUMNS		   	are characters (size = 1 byte))
+#
+#=========================================================================================================================
 GameBoard:	.space	42		#reserves a block of 42 bytes
 ClCount:	.word	0,0,0,0,0,0,0 	#Array of Tokens per Column
 WinCondition:	.word	4		#Number of Tokens to Win
-# == Player Markers ===========================================
-#Use these to load marker ascii values and also the values to check for player or computer turn
+
+#	Player Markers 
+#	Use these to load marker ascii values and also the values to check for player or computer turn
+
 Player:		.word   79		#Player marker and also ascii value for 'O'
 Computer:	.word	88		#Computer marker and also ascii value for 'X'
 #=========================================================================================================================
@@ -132,7 +173,9 @@ DEBUG4:		.asciiz			"Switching players: "
 Newline:	.asciiz			"\n"
 		.globl	main
 		
-		
+#=========================================================================================================================
+#	Exception Handling 
+#=========================================================================================================================		
 		.ktext 0x80000180
    	move $k0,$v0   # Save $v0 value
    	move $k1,$a0   # Save $a0 value
@@ -151,25 +194,12 @@ Newline:	.asciiz			"\n"
    		.kdata	
 ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
 		
-#================== Setting up Bitmap Display ======================================
+									
+#=========================================================================================================================
+#	Program Main
+#=========================================================================================================================
+#	Important Notes:
 #
-#	Please make sure to follow these directions or MARS will crash!!
-#
-#	1. Go to Tools > Bitmap Display
-#
-#	2. Select following options for Bitmap Display:
-#		a. Unit Width in Pixels: 8
-#		b. Unit Height in Pixels: 8
-#		c. Display Width in Pixels: 512
-#		d. Display Height in Pixels: 512
-# IMPORTANT!!   e. Base address for display: 0x10010000 (static data)
-#
-# 	3. Click "Connect to MIPS"
-#
-#	NOTE: If you try to skip step 3 and connect after MIPS is already running the
-#	      program, the program will freeze and a force shutdown will be needed!!
-#									
-#============================== Notes ==============================================
 #	$s0 = used globally to keep track of current turn
 #	    = 79 for player turn (used in many comparisons for branching, jumping, displaying ascii board)
 #	    = 88 for computer turn (used in many comparisons for branching, jumping, displaying ascii board)
@@ -180,28 +210,9 @@ ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"
 #	$s4 = current move's row index
 #	$s5 = game mode, 1 - 1 player, 2 - 2 player --- For 1P modes: 3 - Easy Mode, 4 - Normal Mode, 5 - Hard Mode
 #	$s6 = color of current turn (0x00FFFF00, yellow for P1, 0x00FF0000, red for P2)
-#
-# Colors for Bitmap Display:
-#	Red:		0x00FF0000
-#	Blue:		0x003333FF
-#	White:		0x00FFFFFF
-#	Yellow:		0x00FFFF00
-#	Green:		0x0000FF00
-#	Black:		0x00000000
-#
-#================== How to Use Column and Row Indexing =============================
-#
-#	6   |_35|_36|_37|_38|_39|_40|_41|
-#	5   |___|___|_._|_._|_._|_33|_34|
-#   	4   |___|___|_+6|_+7|_+8|___|___|  To get the negative diagonal pieces, +/- 6 from point of reference
-#  ROWS	3   |___|___|_-1|_x_|_+1|___|___|  To get the positive diagonal pieces, +/- 8 from point of reference
-#   	2   |___|___|_-8|_-7|_-6|___|___|  To get the vertical pieces, +/- 7 from point of reference
-#   	1   |_7_|_8_|_._|_._|_._|___|___|  To get the horizontal pieces, +/- 1 from the point of reference
-#	0   |_0_|_1_|_2_|_3_|_4_|_5_|_6_|  where x + starting address of array = address of xth element
-#	      0   1   2   3   4   5   6   (note: do not need to multiply by size of element since elements
-#		   COLUMNS		   	are characters (size = 1 byte))
-#====================================================================================
-  	
+#========================================================================================================================= 
+#	Program Welcome, Game Initialization and Main Game Loop
+#========================================================================================================================= 	
 		.text	
 main:   
 	
@@ -224,7 +235,7 @@ GameLoop:
 	jal	SwitchPlayers
 	j	GameLoop
 
-# end of GameLoop
+#========================================================================================================================= 	
 
 SelectGameMode:
 	li	$v0, 4			#system call code for Print String
@@ -437,6 +448,11 @@ PlayerMove:
 	j	CheckValidMove		#Check if the move is valid
 	
 ComputerMove:
+	
+	li	$v0, 32
+	li	$a0, 600
+	syscall
+	
 	beq	$s5, 3, EasyMode
 	beq	$s5, 4, NormalMode
 	beq	$s5, 5, HardMode
@@ -983,8 +999,8 @@ BitmapEndGameBar:
 	li	$t2, 0x10011700
 	li	$t6, 0x00C8C8C8
   BMEndGameBarLoop:
-	beq	$t0, 9, JumpReturn
-	beq	$t1, 64, NextBMEndRow
+	beq	$t1, 64, JumpReturn
+	beq	$t0, 9, NextBMBarCol
 	
 	sll	$t3, $t0, 6
 	add	$t3, $t3, $t1
@@ -996,7 +1012,7 @@ BitmapEndGameBar:
 	beq	$t4, 0x00FF0000, DimRed
 	sw	$t6, 0x10011700($t3)	
     ContEndGameBar:	
-	add	$t1, $t1, 1
+	add	$t0, $t0, 1
 	j	BMEndGameBarLoop
     DimBlue:
     	li	$t5, 0x00FBFBFF
@@ -1011,9 +1027,14 @@ BitmapEndGameBar:
     	sw	$t5, 0x10011700($t3)
     	j	ContEndGameBar
 	
-  NextBMEndRow:
-	add	$t0, $t0, 1
-	li	$t1, 0
+  NextBMBarCol:
+	add	$t1, $t1, 1
+	li	$t0, 0
+	
+	li	$v0, 32
+	li	$a0, 1
+	syscall
+	
 	j	BMEndGameBarLoop
 
 PlayerWinner:
