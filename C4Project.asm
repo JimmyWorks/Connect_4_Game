@@ -99,16 +99,16 @@ BitmapWins2:	.word	1908,1909,1912
 #Victory Sound
 Music_Victory_NoteCt:	.word	4
 Music_Victory_Note:	.word	69, 70, 71, 72
-Music_Victory_Dur:	.word	250, 250, 250, 250
+Music_Victory_Dur:	.word	250, 250, 250, 750
 Music_Victory_Instr:	.word	5, 5, 5, 5
 Music_Victory_Vol:	.word	90, 95, 100, 110
 
 #Defeat Sound
-Music_Defeat_NoteCt:	.word	20
-Music_Defeat_Note:	.word	79,67,72,76,75,68,89,71,81,72,76,71,81,72,76,81,79,72,74,76
-Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
-Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
-Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
+Music_Defeat_NoteCt:	.word	16
+Music_Defeat_Note:	.word	79, 67, 72, 76, 75, 68, 84, 71, 81, 72, 76, 81, 79, 72, 74, 76
+Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
+Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
+Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
 #=========================================================================================================================
 #	GameBoard Memory
 #=========================================================================================================================
