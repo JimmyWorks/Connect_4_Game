@@ -296,7 +296,7 @@ InvalidDifficulty:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, InvalDiffMsg  	#load address of Invalid Mode
 	syscall				#print user input prompt
-Wrong sound:
+Wrongsound:
 	addi $a0, $zero, 50
 	addi $a1, $zero, 200
 	addi $a2, $zero, 16
@@ -662,7 +662,7 @@ notplayersoundmove:
 	la	$t3, Music_placement_Vol	# $t3 must be loaded with base address of array of volume of note
 	jal	PlaySound		#play sound
 	jr	$ra			#return
-playersoundmove:
+playermovesound:
 la	$t4, Music_placement_NoteCt
 	lw	$t4, ($t4)		# $t4 loaded with number of notes
 	la	$t0, Music_player_Note	# $t0 must be loaded with base address of array of notes
