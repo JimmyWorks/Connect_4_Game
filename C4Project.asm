@@ -657,24 +657,6 @@ NewMove:
 	add	$s4, $t0, $0		#Store current move's row index in $s4
 	addi	$t0, $t0, 1		#add 1 to column count
 	sw	$t0, ClCount($t4)	#store updated count of column 1 into memory
-	beq	$s0, 79, playermovesound
-notplayersoundmove:	
-	la	$t4, Music_placement_NoteCt
-	lw	$t4, ($t4)		# $t4 loaded with number of notes
-	la	$t0, Music_placement_Note	# $t0 must be loaded with base address of array of notes
-	la	$t1, Music_placement_Dur	# $t1 must be loaded with base address of array of duration of note
-	la	$t2, Music_placement_Instr# $t2 must be loaded with base address of array of instrument of note
-	la	$t3, Music_placement_Vol	# $t3 must be loaded with base address of array of volume of note
-	jal	PlaySound		#play sound
-	jr	$ra			#return
-playermovesound:
-la	$t4, Music_placement_NoteCt
-	lw	$t4, ($t4)		# $t4 loaded with number of notes
-	la	$t0, Music_player_Note	# $t0 must be loaded with base address of array of notes
-	la	$t1, Music_player_Dur	# $t1 must be loaded with base address of array of duration of note
-	la	$t2, Music_player_Instr# $t2 must be loaded with base address of array of instrument of note
-	la	$t3, Music_player_Vol	# $t3 must be loaded with base address of array of volume of note
-	jal	PlaySound		#play sound
 	jr	$ra			#return
 	
 FullColumn:
