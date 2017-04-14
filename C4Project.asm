@@ -109,6 +109,18 @@ Music_Defeat_Note:	.word	79, 67, 72, 76, 75, 68, 84, 71, 81, 72, 76, 81, 79, 72,
 Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
 Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
 Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
+#Player Placement
+Music_player_NoteCt:	.word	2
+Music_player_Note:	.word	83, 84
+Music_player_Dur:	.word	75, 600
+Music_player_Instr:	.word	1, 1
+Music_player_Vol:	.word	100
+#sound effect
+Music_placement_NoteCt:	.word	1
+Music_placement_Note:	.word	84
+Music_placement_Dur:	.word	600
+Music_placement_Instr:	.word	1
+Music_placement_Vol:	.word	100
 #=========================================================================================================================
 #	GameBoard Memory
 #=========================================================================================================================
@@ -269,7 +281,13 @@ SelectDifficulty:
 	syscall		
 	
 	add	$s5, $v0, $0
-	
+	la	$t4, Music_placement_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_placement_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_placement_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_placement_Instr# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_placement_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
 	beq	$s5, 1, ValidDifficulty
 	beq	$s5, 2, ValidDifficulty
 	beq	$s5, 3, ValidDifficulty
@@ -278,7 +296,19 @@ InvalidDifficulty:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, InvalDiffMsg  	#load address of Invalid Mode
 	syscall				#print user input prompt
-	
+Wrong sound:
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall 
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall	
 	j 	RetryDifficulty
 
 ValidDifficulty:
@@ -622,6 +652,24 @@ NewMove:
 	add	$s4, $t0, $0		#Store current move's row index in $s4
 	addi	$t0, $t0, 1		#add 1 to column count
 	sw	$t0, ClCount($t4)	#store updated count of column 1 into memory
+	beq	$s0, 79, playermovesound
+notplayersoundmove:	
+	la	$t4, Music_placement_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_placement_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_placement_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_placement_Instr# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_placement_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
+	jr	$ra			#return
+playersoundmove:
+la	$t4, Music_placement_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_player_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_player_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_player_Instr# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_player_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
 	jr	$ra			#return
 	
 FullColumn:
