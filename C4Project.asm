@@ -269,6 +269,12 @@ InvalidMode:
 	
 	j 	RetryGameMode
 ValidMode:
+	addi $a0, $zero, 84
+	addi $a1, $zero, 600
+	addi $a2, $zero, 1
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall 
 	beq	$s5, 1, SelectDifficulty
 	jr	$ra	
 	
@@ -281,13 +287,6 @@ SelectDifficulty:
 	syscall		
 	
 	add	$s5, $v0, $0
-	la	$t4, Music_placement_NoteCt
-	lw	$t4, ($t4)		# $t4 loaded with number of notes
-	la	$t0, Music_placement_Note	# $t0 must be loaded with base address of array of notes
-	la	$t1, Music_placement_Dur	# $t1 must be loaded with base address of array of duration of note
-	la	$t2, Music_placement_Instr# $t2 must be loaded with base address of array of instrument of note
-	la	$t3, Music_placement_Vol	# $t3 must be loaded with base address of array of volume of note
-	jal	PlaySound		#play sound
 	beq	$s5, 1, ValidDifficulty
 	beq	$s5, 2, ValidDifficulty
 	beq	$s5, 3, ValidDifficulty
@@ -312,6 +311,12 @@ Wrongsound:
 	j 	RetryDifficulty
 
 ValidDifficulty:
+	addi $a0, $zero, 84
+	addi $a1, $zero, 600
+	addi $a2, $zero, 1
+	addi $a3, $zero, 90
+	li $v0, 33
+	syscall 
 	add	$s5, $s5, 2		#offset selection by 2 to correct game mode selection, e.g. Selected Easy Mode = 1 + 2 = Game Mode 3	
 	jr	$ra
 			
