@@ -178,33 +178,36 @@ LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE, you goober!! \n\n=====
 P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS!! \n\n====================\n\n"
 P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
-DEBUG:		.asciiz			"DEBUG: "	#for debug testing
-DEBUG2:		.asciiz			"DEBUG2: "
-DEBUG3:		.asciiz			"DEBUG3: "
-DEBUG4:		.asciiz			"Switching players: "
+DEBUG:		.asciiz			"DEBUG Checking Column: "	#for debug testing
+DEBUG2:		.asciiz			"DEBUG2 Counter: "
+DEBUG3:		.asciiz			"DEBUG3 Cur char: "
+DEBUG4:		.asciiz			"Height: "
+DEBUG5:		.asciiz			"Checking column...\n"
+DEBUG6:		.asciiz			"DEBUG6: Match char: "
+DEBUG7:		.asciiz			"DEBUG7: BLOCKED! Index: "
 Newline:	.asciiz			"\n"
 		.globl	main
 		
 #=========================================================================================================================
 #	Exception Handling 
 #=========================================================================================================================		
-		.ktext 0x80000180
-   	move $k0,$v0   # Save $v0 value
-   	move $k1,$a0   # Save $a0 value
+#		.ktext 0x80000180
+#move $k0,$v0   # Save $v0 value
+  # 	move $k1,$a0   # Save $a0 value
    	
-   	la   $a0, ExceptionMsg  # address of string to print
-   	li   $v0, 4    # Print String service
-   	syscall
+ #  	la   $a0, ExceptionMsg  # address of string to print
+  # 	li   $v0, 4    # Print String service
+  # 	syscall
    	
-   	move $v0,$k0   # Restore $v0
-   	move $a0,$k1   # Restore $a0
-  	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
-   	addi $k0,$k0,4 # Add 4 to point to next instruction
-   	mtc0 $k0,$14   # Store new address back into $14
-   	eret           # Error return; set PC to value in $14
+ #  	move $v0,$k0   # Restore $v0
+  # 	move $a0,$k1   # Restore $a0
+ # 	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
+ #  	addi $k0,$k0,4 # Add 4 to point to next instruction
+ #  	mtc0 $k0,$14   # Store new address back into $14
+ #  	eret           # Error return; set PC to value in $14
    	
-   		.kdata	
-ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
+ #  		.kdata	
+#ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
 		
 									
 #=========================================================================================================================
@@ -499,12 +502,36 @@ HardMode:	#In-Progress....
 	addi	$sp, $sp, -4
 	sw	$ra, 0($sp)
 	
-	jal	FirstMoveCheck
+	jal	CPU_FirstMoveCheck			# I get first move.  Always choose center.
 		bne	$s1, $0, BestMove
-	jal	Bottom3Check
+	jal	CPU_Bottom3Check			# Check left/right of center chip
 		bne	$s1, $0, BestMove
-	jal	BottomWinCheck
+	jal	CPU_BottomWinCheck			# Begin with bottom win technique
 		bne	$s1, $0, BestMove
+		
+  CPU_WinningMoveCheck:	
+	li	$a1, 88		
+	jal	CPU_VertCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_HorizCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_NegDiagCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_PosDiagCheck	
+		bne	$s1, $0, BestMove
+  CPU_BlockingMoveCheck:			
+	li	$a1, 79	
+	jal	CPU_VertCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_HorizCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_NegDiagCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_PosDiagCheck	
+		bne	$s1, $0, BestMove
+
+	#	PriorityMove
+	#	Lastly, move prioritizing the center of the board		
 	
 	lw	$ra, 0($sp)
 	addi	$sp, $sp, 4
@@ -532,14 +559,14 @@ BestMove:
 	j	CheckValidMove
 	
 			
-FirstMoveCheck:
+CPU_FirstMoveCheck:
 	la	$t0, ClCount
 	lw	$t0, 12($t0)
 				
 	beq	$t0, $0, Select4
 	jr	$ra
 
-Bottom3Check:
+CPU_Bottom3Check:
 	la	$t0, ClCount
 	lw	$t1, 8($t0)
 	
@@ -551,12 +578,12 @@ Bottom3Check:
 	
 	jr	$ra
 
-BottomWinCheck:	
+CPU_BottomWinCheck:	
 	la	$t0, GameBoard			#Load address of the GameBoard into $t0
 	addi	$t0, $t0, 2			#Let $t0 hold the address of the token: one token to the left of the bottom center token
 	li	$t1, 3				#Let $t1 hold the current column
 	
-BWCheckLoopLeft:	
+   BWCheckLoopLeft:	
 	beq	$t1, $0, BWCheckRight
 	
 	lb	$t2, ($t0)
@@ -567,13 +594,13 @@ BWCheckLoopLeft:
 	add	$t1, $t1, -1
 	j	BWCheckLoopLeft
 	
-BWCheckRight:
+   BWCheckRight:
 	
 	la	$t0, GameBoard
 	addi	$t0, $t0, 4
 	li	$t1, 5
 	
-BWCheckLoopRight:			
+   BWCheckLoopRight:			
 	beq	$t1, 8, BWCheckNoMove
 	
 	lb	$t2, ($t0)
@@ -584,13 +611,55 @@ BWCheckLoopRight:
 	add	$t1, $t1, 1
 	j	BWCheckLoopRight
 
-BWCheckNoMove:
+   BWCheckNoMove:
 	jr	$ra
 	
-BWCheckNextMove:
+   BWCheckNextMove:
 	add	$s1, $t1, $0
 	jr	$ra
-				
+
+
+CPU_VertCheck:
+	#set $a1 to the ascii value checking for
+	la	$t0, GameBoard
+	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row number
+   CPU_VertCheckLoop:
+	beq	$t3, 7, JumpReturn
+	sll	$t5, $t3, 2		# Multiply Column index by 4 to get offset in bytes
+	lw	$t4, ClCount($t5)	# Load word in Column Count offset by the number of bytes of current index into $t4
+	beq	$t4, 6, CPU_NextVertCol	# If there are 6 chips in the column, skip to next column
+	blt	$t4, 3, CPU_NextVertCol # If there are less than 3 chips, not enough to win on next move, skip to next column
+
+	add	$t1, $t4, -1		# Get the row index (height - 1)
+	mul	$t1, $t1, 7		# Multiply by 7 slots per row
+	add	$t1, $t1, $t3		# Add column offset
+	add	$t1, $t1, $t0		# Get address of first check
+	li	$t2, 0			#Counter for consecutive chips
+     CPU_VertCheckColLoop:
+     	beq	$t4, $0, CPU_NextVertCol
+     	
+     	lb	$t6, ($t1)
+     	bne	$t6, $a1, CPU_NextVertCol
+    	
+     	add	$t2, $t2, 1
+
+     	beq	$t2, 3, CPU_VertCheckFound
+	add	$t4, $t4, -1
+	add	$t1, $t1, -7
+	j	CPU_VertCheckColLoop
+     CPU_NextVertCol:
+	addi	$t3, $t3, 1
+	j	CPU_VertCheckLoop
+   CPU_VertCheckFound:			# Found winning move!  Need to place winning move or block it.
+   	addi	$s1, $t3, 1		# Add 1 to index to make that then next move
+   	jr	$ra
+
+CPU_HorizCheck:
+CPU_NegDiagCheck:
+CPU_PosDiagCheck:	
+	jr	$ra
+
+												
 Select4:
 	li	$s1, 4
 	jr	$ra
