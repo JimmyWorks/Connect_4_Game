@@ -486,6 +486,8 @@ PlayerMove:
 	syscall				#Read user input
 	
 	add	$s1, $v0, $zero		#store input to $t0
+	
+	# Sound for Selected Column
 	li $t1, 2
 	mul $t1, $t1, $s1
 	addi $t1, $t1, 50
@@ -503,6 +505,7 @@ ComputerMove:
 	li	$a0, 600
 	syscall
 	
+	# Sound for Selected Column
 	li $t1, 4
 	mul $t1, $t1, $s1
 	addi $t1, $t1, 50
@@ -644,7 +647,7 @@ CPU_BottomWinCheck:
 CPU_VertCheck:
 	#set $a1 to the ascii value checking for
 	la	$t0, GameBoard
-	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row number
+	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row NUMBER
    CPU_VertCheckLoop:
 	beq	$t3, 7, JumpReturn
 	sll	$t5, $t3, 2		# Multiply Column index by 4 to get offset in bytes
@@ -677,6 +680,55 @@ CPU_VertCheck:
    	jr	$ra
 
 CPU_HorizCheck:
+	#set $a1 to the ascii value checking for
+	la	$t0, GameBoard		# Base address of gameboard array stored in $t0
+	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row INDEX
+	
+   CPU_HorizCheckLoop:
+	beq	$t3, 7, JumpReturn	# If all columns processed, no winning move found.  Return.
+	sll	$t5, $t3, 2		# Multiply Column index by 4 to get offset in bytes
+	lw	$t4, ClCount($t5)	# Load word in Column Count offset by the number of bytes of current index into $t4 to get height (or index of token above)
+					# Note: Normally, height - 1 = index of last token in column, but since we want token about the last token, step not needed
+	mul	$t1, $t4, 7		# Multiply by 7 slots per row
+	add	$t1, $t1, $t3		# Add column offset
+	add	$t1, $t1, $t0		# Get address of traversing empty slot (total byte offset + base address of gameboard)
+	
+	
+	li	$t2, 0			#Counter for consecutive chips
+	addi	$t6, $t3, -1		# Let $t6 be the checked token's starting with token left of empty slot
+	addi	$t8, $t1, -1		# Let $t8 be the checked token's address in array
+      CPU_HorizLeftCheckLoop:
+      	blt	$t6, 0, CPU_HorizRightCheck
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_HorizRightCheck
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_HorizCheckFound
+	addi	$t6, $t6, -1
+	addi	$t8, $t8, -1
+	j	CPU_HorizLeftCheckLoop
+      	
+      CPU_HorizRightCheck:
+      	# Keep $t2, counter, the same value
+	addi	$t6, $t3, 1		# Let $t6 be the checked token's starting with token right of empty slot
+	addi	$t8, $t1, 1		# Let $t8 be the checked token's address in array     
+      CPU_HorizRightCheckLoop:
+      	bgt	$t6, 6, CPU_NextHorizCol
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_NextHorizCol
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_HorizCheckFound
+	addi	$t6, $t6, 1
+	addi	$t8, $t8, 1
+	j	CPU_HorizRightCheckLoop
+      CPU_NextHorizCol:
+      	addi	$t3, $t3, 1
+	j	CPU_HorizCheckLoop
+   CPU_HorizCheckFound:			# Found winning move!  Need to place winning move or block it.
+   	addi	$s1, $t3, 1		# Add 1 to index to make that then next move
+   	jr	$ra
+	
 CPU_NegDiagCheck:
 CPU_PosDiagCheck:	
 	jr	$ra
