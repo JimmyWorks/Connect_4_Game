@@ -123,18 +123,7 @@ Music_Defeat_Note:	.word	79, 67, 72, 76, 75, 68, 84, 71, 81, 72, 76, 81, 79, 72,
 Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
 Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
 Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
-#Player Placement
-Music_player_NoteCt:	.word	2
-Music_player_Note:	.word	83, 84
-Music_player_Dur:	.word	75, 600
-Music_player_Instr:	.word	1, 1
-Music_player_Vol:	.word	100
-#sound effect
-Music_placement_NoteCt:	.word	1
-Music_placement_Note:	.word	84
-Music_placement_Dur:	.word	600
-Music_placement_Instr:	.word	1
-Music_placement_Vol:	.word	100
+
 #=========================================================================================================================
 #	GameBoard Memory
 #=========================================================================================================================
