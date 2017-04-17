@@ -103,6 +103,14 @@ BitmapDraw4:	.word	1898,1901,1903,1907
 #		la	$t3, Music_Victory_Vol
 #		jal	PlaySound
 #=========================================================================================================================
+
+#Intro Sound
+Music_Intro_NoteCt:	.word	4
+Music_Intro_Note:	.word	60, 71, 73, 76
+Music_Intro_Dur:	.word	250, 250, 250, 250
+Music_Intro_Instr:	.word	5, 5, 5, 5
+Music_Intro_Vol:	.word	90, 90, 90, 90
+
 #Victory Sound
 Music_Victory_NoteCt:	.word	4
 Music_Victory_Note:	.word	69, 70, 71, 72
@@ -125,11 +133,18 @@ Music_VictoryP2_Instr:	.word	96, 96, 96, 96, 96
 Music_VictoryP2_Vol:	.word	90, 95, 100, 110, 120
 
 #Defeat Sound
-Music_Defeat_NoteCt:	.word	31
-Music_Defeat_Note:	.word	79, 1, 67, 1, 72, 1, 76, 1, 75, 1, 68, 1, 84, 1, 71, 1, 81, 1, 72, 1, 76, 1, 81, 1, 79, 1, 72, 1, 74, 1, 76
-Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
-Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
-Music_Defeat_Vol:	.word	90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90
+Music_Defeat_NoteCt:	.word	16
+Music_Defeat_Note:	.word	79, 67, 72, 76, 75, 68, 84, 71, 81, 72, 76, 81, 79, 72, 74, 76
+Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
+Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
+Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
+
+#End Program Sound
+Music_End_NoteCt:	.word	5
+Music_End_Note:		.word	72, 71, 72, 70, 72
+Music_End_Dur:		.word	300,300,300,300,300
+Music_End_Instr:	.word	5,5,5,5,5
+Music_End_Vol:		.word	90,90,90,90,90
 
 #=========================================================================================================================
 #	GameBoard Memory
@@ -249,6 +264,7 @@ main:
 NewGame:
 	jal 	InitializeGame		#Call to Initialize New Game
 	jal	InitializeBitmap	#Initialize the Bitmap for the Gameboard Display
+#	jal	PlayIntro
 	jal	SelectGameMode		#select game mode
 	jal 	PrintBoard		#print the initial blank board
 	jal	SetFirstMove		#Set first move depending on difficulty mode, if 1-player mode
@@ -263,6 +279,24 @@ GameLoop:
 	j	GameLoop
 
 #========================================================================================================================= 	
+
+#	Play Intro Music
+PlayIntro:
+	addi	$sp, $sp, -4
+	sw	$ra, 0($sp)
+
+	la	$t4, Music_Intro_NoteCt
+	lw	$t4, ($t4)		
+	la	$t0, Music_Intro_Note
+	la	$t1, Music_Intro_Dur
+	la	$t2, Music_Intro_Instr
+	la	$t3, Music_Intro_Vol
+	jal	PlaySound
+	
+	lw	$ra, 0($sp)
+	addi	$sp, $sp, 4
+		
+	jr	$ra
 
 SelectGameMode:
 	li	$v0, 4			#system call code for Print String
@@ -887,20 +921,6 @@ InvalidPlayerMove:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalidMsg  	#load address of invalid move message
 	syscall				#print invalid move message
-Wrongmovessound:
-	addi $a0, $zero, 50
-	addi $a1, $zero, 200
-	addi $a2, $zero, 16
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall 
-	addi $a0, $zero, 50
-	addi $a1, $zero, 200
-	addi $a2, $zero, 16
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall	
-	j	PlayerMove		#return
 
 InvalidCompMove:
 	li	$v0, 4			#system call code for Print String
@@ -1523,7 +1543,7 @@ PlaySound:
 	# $t2 must be loaded with base address of array of instrument of note
 	# $t3 must be loaded with base address of array of volume of note
 	li	$t5, 0			# Current note index is 0
-	li	$v0, 31			# Syscall is set to play sounds
+	li	$v0, 33			# Syscall is set to play sounds
 	
   SoundLoop:				# While not the last note, play current note
   	beq	$t5, $t4, JumpReturn	# If last note was played last loop, return
@@ -1562,6 +1582,15 @@ EndGame:
 	j	EndGameLoop
 
 EndProgram:	
+		#	End Program Jingle
+		la	$t4, Music_End_NoteCt
+		lw	$t4, ($t4)		
+		la	$t0, Music_End_Note
+		la	$t1, Music_End_Dur
+		la	$t2, Music_End_Instr
+		la	$t3, Music_End_Vol
+		jal	PlaySound
+	
 	li      $v0, 10              	# terminate program run and
   	syscall                      	# Exit
 	
