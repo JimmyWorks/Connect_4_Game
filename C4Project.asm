@@ -106,8 +106,8 @@ BitmapDraw4:	.word	1898,1901,1903,1907
 
 #Intro Sound
 Music_Intro_NoteCt:	.word	4
-Music_Intro_Note:	.word	60, 71, 73, 76
-Music_Intro_Dur:	.word	250, 250, 250, 250
+Music_Intro_Note:	.word	90, 94, 97, 90
+Music_Intro_Dur:	.word	150, 150, 150, 150
 Music_Intro_Instr:	.word	5, 5, 5, 5
 Music_Intro_Vol:	.word	90, 90, 90, 90
 
@@ -204,7 +204,7 @@ P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS
 P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
 TieMsg:		.asciiz			"\n\n====================\n\nIt's a DRAW!!\n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
-DEBUG:		.asciiz			"DEBUG Pause "	#for debug testing
+DEBUG:		.asciiz			"DEBUG next "	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2 Counter: "
 DEBUG3:		.asciiz			"DEBUG3 Cur char: "
 DEBUG4:		.asciiz			"Height: "
@@ -257,14 +257,11 @@ ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"
 		.text	
 main:   
 	
-	li	$v0, 4			#system call code for Print String
-	la	$a0, WelcomeBanner  	#load address of Welcome Banner
-	syscall				#print User input prompt
+	jal	PlayIntro
 	
 NewGame:
 	jal 	InitializeGame		#Call to Initialize New Game
 	jal	InitializeBitmap	#Initialize the Bitmap for the Gameboard Display
-#	jal	PlayIntro
 	jal	SelectGameMode		#select game mode
 	jal 	PrintBoard		#print the initial blank board
 	jal	SetFirstMove		#Set first move depending on difficulty mode, if 1-player mode
@@ -282,6 +279,10 @@ GameLoop:
 
 #	Play Intro Music
 PlayIntro:
+	li	$v0, 4			#system call code for Print String
+	la	$a0, WelcomeBanner  	#load address of Welcome Banner
+	syscall				#print User input prompt
+
 	addi	$sp, $sp, -4
 	sw	$ra, 0($sp)
 
