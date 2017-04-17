@@ -521,7 +521,7 @@ ComputerMove:
 	beq	$s5, 5, HardMode
 	j	LogicalError
 	
-HardMode:	#In-Progress....
+HardMode:
 
 	li	$s1, 0
 	addi	$sp, $sp, -4
@@ -534,7 +534,7 @@ HardMode:	#In-Progress....
 	jal	CPU_BottomWinCheck			# Begin with bottom win technique
 		bne	$s1, $0, BestMove
 		
-  CPU_WinningMoveCheck:					# Check for possible wins in all columns
+  CPU_WinningMoveCheckHard:					# Check for possible wins in all columns
 	li	$a1, 88		
 	jal	CPU_VertCheck	
 		bne	$s1, $0, BestMove
@@ -544,7 +544,7 @@ HardMode:	#In-Progress....
 		bne	$s1, $0, BestMove
 	jal	CPU_PosDiagCheck	
 		bne	$s1, $0, BestMove
-  CPU_BlockingMoveCheck:				# Check for possible losses in all columns		
+  CPU_BlockingMoveCheckHard:				# Check for possible losses in all columns		
 	li	$a1, 79	
 	jal	CPU_VertCheck	
 		bne	$s1, $0, BestMove
@@ -563,10 +563,30 @@ HardMode:	#In-Progress....
 	
 	j	RandomMove
 
-NormalMode:	#unimplemented for now
-		#whatever the logic is, must end with a jump to CheckValidMove
-EasyMode:
+NormalMode:
 
+	li	$s1, 0
+	addi	$sp, $sp, -4
+	sw	$ra, 0($sp)
+		
+  CPU_WinningMoveCheckNorm:					# Check for possible horizontal wins
+	li	$a1, 88		
+	jal	CPU_HorizCheck	
+		bne	$s1, $0, BestMove
+
+  CPU_BlockingMoveCheckNorm:				# Check for possible losses in vertical and horizontal conditions		
+	li	$a1, 79	
+	jal	CPU_VertCheck	
+		bne	$s1, $0, BestMove
+	jal	CPU_HorizCheck	
+		bne	$s1, $0, BestMove	
+	
+	lw	$ra, 0($sp)
+	addi	$sp, $sp, 4
+	
+	j	RandomMove
+	
+EasyMode:	# Easy mode simply inputs random moves
 RandomMove:
 	lw	$t0, Computer		#load ascii value for x
 	add	$s0, $t0, $zero		#put Computer ascii 'X' into $s0
