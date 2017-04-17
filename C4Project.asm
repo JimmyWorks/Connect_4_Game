@@ -173,7 +173,7 @@ InvalDiffMsg:	.asciiz			"Invalid game difficulty selected.  Please try again: "
 PlayerMoveMsg:	.asciiz			"Please pick a column: \n"
 SystemError:	.asciiz			"Program has encountered a system error. \n"
 FullColMsg:	.asciiz			"That column is full.  Try again. \n"
-InvalidMsg:	.asciiz			"Invalid selection.  Please try again333. \n"
+InvalidMsg:	.asciiz			"Invalid selection.  Please try again. \n"
 InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMsg:		.asciiz			"\n\n====================\n\nCongratulations!  You WIN!! \n\n====================\n\n"
@@ -194,23 +194,23 @@ Newline:	.asciiz			"\n"
 #=========================================================================================================================
 #	Exception Handling 
 #=========================================================================================================================		
-#		.ktext 0x80000180
-#move $k0,$v0   # Save $v0 value
-  # 	move $k1,$a0   # Save $a0 value
+		.ktext 0x80000180
+	move $k0,$v0   # Save $v0 value
+  	move $k1,$a0   # Save $a0 value
    	
- #  	la   $a0, ExceptionMsg  # address of string to print
-  # 	li   $v0, 4    # Print String service
-  # 	syscall
+   	la   $a0, ExceptionMsg  # address of string to print
+   	li   $v0, 4    # Print String service
+   	syscall
    	
- #  	move $v0,$k0   # Restore $v0
-  # 	move $a0,$k1   # Restore $a0
- # 	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
- #  	addi $k0,$k0,4 # Add 4 to point to next instruction
- #  	mtc0 $k0,$14   # Store new address back into $14
- #  	eret           # Error return; set PC to value in $14
+   	move $v0,$k0   # Restore $v0
+   	move $a0,$k1   # Restore $a0
+  	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
+   	addi $k0,$k0,4 # Add 4 to point to next instruction
+   	mtc0 $k0,$14   # Store new address back into $14
+   	eret           # Error return; set PC to value in $14
    	
- #  		.kdata	
-#ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
+ 		.kdata	
+ExceptionMsg:	.asciiz			"You cannot enter characters. \n\n"				
 		
 									
 #=========================================================================================================================
@@ -487,34 +487,13 @@ PlayerMove:
 	
 	add	$s1, $v0, $zero		#store input to $t0
 	
-	# Sound for Selected Column
-	li $t1, 2
-	mul $t1, $t1, $s1
-	addi $t1, $t1, 50
-	add $a0, $zero, $t1
-	addi $a1, $zero, 400
-	addi $a2, $zero, 96
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall  
 	j	CheckValidMove		#Check if the move is valid
 	
 ComputerMove:
 	
 	li	$v0, 32
 	li	$a0, 600
-	syscall
-	
-	# Sound for Selected Column
-	li $t1, 4
-	mul $t1, $t1, $s1
-	addi $t1, $t1, 50
-	add $a0, $zero, $t1
-	addi $a1, $zero, 400
-	addi $a2, $zero, 96
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall  
+	syscall	
 	
 	beq	$s5, 3, EasyMode
 	beq	$s5, 4, NormalMode
@@ -895,9 +874,9 @@ InvalidInput:				#this label is used by different jump calls, but is also automa
 InvalidPlayerMove:	
 	teqi	$zero, 0
 	
-	#li	$v0, 4			#system call code for Print String
-	#la	$a0,InvalidMsg  	#load address of invalid move message
-	#syscall				#print invalid move message
+	li	$v0, 4			#system call code for Print String
+	la	$a0,InvalidMsg  	#load address of invalid move message
+	syscall				#print invalid move message
 Wrongmovessound:
 	addi $a0, $zero, 50
 	addi $a1, $zero, 200
@@ -919,7 +898,17 @@ InvalidCompMove:
 	syscall				#print invalid move message	
 	j	ComputerMove		#return
 	
-NewMove:	
+NewMove:
+	# Sound for Selected Column
+	li $t1, 2
+	mul $t1, $t1, $s1
+	addi $t1, $t1, 50
+	add $a0, $zero, $t1
+	addi $a1, $zero, 400
+	addi $a2, $zero, 96
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall  	
 	addi    $s3, $s1, -1 		#Store current move's column index in $s3
 	mul	$t4, $s3, 4		#This is the index offset for word
 	lw	$t0, ClCount($t4)	#Store height of the column in t0
@@ -1260,18 +1249,27 @@ CheckPosDiag:
 	add	$t2, $s2, $0			#reset traversing physical address to the last token
 	
 	PosDiagLoopRight:
-	beq	$t3, 6, NoWinnerFound		#if the traversing column index is 6, no winner found
-	beq	$t4, 6, NoWinnerFound		#if the traversing row index is 6, no winner found
+	beq	$t3, 6, TieCheck		#if the traversing column index is 6, no winner found
+	beq	$t4, 6, TieCheck		#if the traversing row index is 6, no winner found
 	
 	add	$t3, $t3, 1			#set traversing column index to one right
 	add	$t4, $t4, 1			#set traversing row index to one above
 	add	$t2, $t2, 8			#set traversing physical address to right upper diagonal slot
 	lb	$t1, ($t2)			#load the token in the traversing checker
-	bne	$t1, $s0, NoWinnerFound		#if it is not equal to the current player's token, branch to next check
+	bne	$t1, $s0, TieCheck		#if it is not equal to the current player's token, branch to next check
 	
 	addi	$t0, $t0, 1			#else, tokens-in-a-row++
-	beq	$t0, $t9, WinnerFound		#if tokens-in-a-row = win condition, found a winner
+	beq	$t0, $t9, TieCheck		#if tokens-in-a-row = win condition, found a winner
 	j	PosDiagLoopRight
+	
+	TieCheck:
+	beq $t1, 8, TieFound
+	lw $t2, ClCount($t1)
+	addi $t1, $t1, 1
+	bne $t2, 6, NoWinnerFound
+	j TieCheck
+	
+	
 	
 	NoWinnerFound:
 	jr	$ra			#No winner found, return to game loop
@@ -1300,6 +1298,9 @@ BitmapPrint:
   	add	$t2, $t2, 1
 	j	BitmapPrintLoop
 	
+TieFound:
+	jal	BitmapEndGameBar	#Print white announcement bar (Note: $ra to game loop lost)
+	j	LogicalError
 
 BitmapEndGameBar:
 #Print white bar at bitmap row starting at pixel 1472 ending 9 rows down
@@ -1434,6 +1435,37 @@ Player2Wins:
 	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
 	jal	BitmapPrint		# Call Bitmap Print sub-routine
 	
+	la	$a0, BitmapWins		# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 43			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	li	$v0, 4			#system call code for Print String
+	la	$a0, P2WinMsg 		#load address of win message
+	syscall				#print
+	
+	la	$t4, Music_VictoryP2_NoteCt
+	lw	$t4, ($t4)			# $t4 loaded with number of notes
+	la	$t0, Music_VictoryP2_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_VictoryP2_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_VictoryP2_Instr 	# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_VictoryP2_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound			#play sound
+	
+	j	EndGame
+	
+Tie:
+	#Filled in for testing purposes
+	la	$a0, BitmapPlayer	# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 57			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
+	la	$a0, BitmapNo2		# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 10			# Load $a1 with number of pixels to change (length of pixel index array)
+	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
+	jal	BitmapPrint		# Call Bitmap Print sub-routine
+	
 	la	$a0, BitmapWins	# Load $a0 with address of array of pixel indices for pixels to print statement
 	li	$a1, 43			# Load $a1 with number of pixels to change (length of pixel index array)
 	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
@@ -1506,3 +1538,4 @@ LogicalError:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalComMovMsg 	#load address of error prompt
 	syscall				#print error prompt	
+
