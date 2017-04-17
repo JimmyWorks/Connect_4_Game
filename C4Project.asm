@@ -534,7 +534,7 @@ HardMode:	#In-Progress....
 	jal	CPU_BottomWinCheck			# Begin with bottom win technique
 		bne	$s1, $0, BestMove
 		
-  CPU_WinningMoveCheck:	
+  CPU_WinningMoveCheck:					# Check for possible wins in all columns
 	li	$a1, 88		
 	jal	CPU_VertCheck	
 		bne	$s1, $0, BestMove
@@ -544,7 +544,7 @@ HardMode:	#In-Progress....
 		bne	$s1, $0, BestMove
 	jal	CPU_PosDiagCheck	
 		bne	$s1, $0, BestMove
-  CPU_BlockingMoveCheck:			
+  CPU_BlockingMoveCheck:				# Check for possible losses in all columns		
 	li	$a1, 79	
 	jal	CPU_VertCheck	
 		bne	$s1, $0, BestMove
@@ -645,7 +645,8 @@ CPU_BottomWinCheck:
 
 
 CPU_VertCheck:
-	#set $a1 to the ascii value checking for
+	# Set $a1 to the ascii reference value in comparison
+	# Returns $s1 with best move, if found
 	la	$t0, GameBoard
 	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row NUMBER
    CPU_VertCheckLoop:
@@ -680,7 +681,8 @@ CPU_VertCheck:
    	jr	$ra
 
 CPU_HorizCheck:
-	#set $a1 to the ascii value checking for
+	# Set $a1 to the ascii reference value in comparison
+	# Returns $s1 with best move, if found
 	la	$t0, GameBoard		# Base address of gameboard array stored in $t0
 	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row INDEX
 	
@@ -695,10 +697,10 @@ CPU_HorizCheck:
 	
 	
 	li	$t2, 0			#Counter for consecutive chips
-	addi	$t6, $t3, -1		# Let $t6 be the checked token's starting with token left of empty slot
+	addi	$t6, $t3, -1		# Let $t6 be the checked token's column starting with token left of empty slot
 	addi	$t8, $t1, -1		# Let $t8 be the checked token's address in array
       CPU_HorizLeftCheckLoop:
-      	blt	$t6, 0, CPU_HorizRightCheck
+      	blt	$t6, 0, CPU_HorizRightCheck # Column Indices must remain between 0-6
       	
       	lb	$t7, ($t8)
 	bne	$t7, $a1, CPU_HorizRightCheck
@@ -710,10 +712,10 @@ CPU_HorizCheck:
       	
       CPU_HorizRightCheck:
       	# Keep $t2, counter, the same value
-	addi	$t6, $t3, 1		# Let $t6 be the checked token's starting with token right of empty slot
+	addi	$t6, $t3, 1		# Let $t6 be the checked token's column starting with token right of empty slot
 	addi	$t8, $t1, 1		# Let $t8 be the checked token's address in array     
       CPU_HorizRightCheckLoop:
-      	bgt	$t6, 6, CPU_NextHorizCol
+      	bgt	$t6, 6, CPU_NextHorizCol # Column Indices must remain between 0-6
       	
       	lb	$t7, ($t8)
 	bne	$t7, $a1, CPU_NextHorizCol
@@ -730,8 +732,118 @@ CPU_HorizCheck:
    	jr	$ra
 	
 CPU_NegDiagCheck:
+# Set $a1 to the ascii reference value in comparison
+	# Returns $s1 with best move, if found
+	la	$t0, GameBoard		# Base address of gameboard array stored in $t0
+	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row INDEX
+	
+   CPU_NegDiagCheckLoop:
+	beq	$t3, 7, JumpReturn	# If all columns processed, no winning move found.  Return.
+	sll	$t5, $t3, 2		# Multiply Column index by 4 to get offset in bytes
+	lw	$t4, ClCount($t5)	# Load word in Column Count offset by the number of bytes of current index into $t4 to get height (or index of token above)
+					# Note: Normally, height - 1 = index of last token in column, but since we want token about the last token, step not needed
+	mul	$t1, $t4, 7		# Multiply by 7 slots per row
+	add	$t1, $t1, $t3		# Add column offset
+	add	$t1, $t1, $t0		# Get address of traversing empty slot (total byte offset + base address of gameboard)
+	
+	
+	li	$t2, 0			#Counter for consecutive chips
+	addi	$t6, $t3, -1		# Let $t6 be the checked token's column index starting with token left of empty slot
+	addi	$t8, $t1, 6		# Let $t8 be the checked token's address in array
+	addi	$t9, $t4, 1		# Let $t9 be the checked token's row index starting with token above empty slot
+      CPU_NegDiagLeftCheckLoop:
+      	blt	$t6, 0, CPU_NegDiagRightCheck # Column Indices must remain between 0-6
+      	bgt	$t9, 5, CPU_NegDiagRightCheck # Row Indices must remain between 0-5
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_NegDiagRightCheck
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_NegDiagCheckFound
+	addi	$t6, $t6, -1
+	addi	$t8, $t8, 6
+	addi	$t9, $t9, 1
+	j	CPU_NegDiagLeftCheckLoop
+      	
+      CPU_NegDiagRightCheck:
+      	# Keep $t2, counter, the same value
+	addi	$t6, $t3, 1		# Let $t6 be the checked token's column starting with token right of empty slot
+	addi	$t8, $t1, -6		# Let $t8 be the checked token's address in array     
+	addi	$t9, $t4, -1		# Let $t9 be the checked token's row index starting with token below empty slot
+      CPU_NegDiagRightCheckLoop:
+      	bgt	$t6, 6, CPU_NextNegDiagCol # Column Indices must remain between 0-6
+      	blt	$t9, 0, CPU_NextNegDiagCol # Row Indices must remain between 0-5
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_NextNegDiagCol
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_NegDiagCheckFound
+	addi	$t6, $t6, 1
+	addi	$t8, $t8, -6
+	addi	$t9, $t9, -1
+	j	CPU_NegDiagRightCheckLoop
+      CPU_NextNegDiagCol:
+      	addi	$t3, $t3, 1
+	j	CPU_NegDiagCheckLoop
+   CPU_NegDiagCheckFound:			# Found winning move!  Need to place winning move or block it.
+   	addi	$s1, $t3, 1		# Add 1 to index to make that then next move
+   	jr	$ra
+   	
 CPU_PosDiagCheck:	
-	jr	$ra
+	# Set $a1 to the ascii reference value in comparison
+	# Returns $s1 with best move, if found
+	la	$t0, GameBoard		# Base address of gameboard array stored in $t0
+	li	$t3, 0			# Let $t3 be the traversing column index, and $t4 be the traversing row INDEX
+	
+   CPU_PosDiagCheckLoop:
+	beq	$t3, 7, JumpReturn	# If all columns processed, no winning move found.  Return.
+	sll	$t5, $t3, 2		# Multiply Column index by 4 to get offset in bytes
+	lw	$t4, ClCount($t5)	# Load word in Column Count offset by the number of bytes of current index into $t4 to get height (or index of token above)
+					# Note: Normally, height - 1 = index of last token in column, but since we want token about the last token, step not needed
+	mul	$t1, $t4, 7		# Multiply by 7 slots per row
+	add	$t1, $t1, $t3		# Add column offset
+	add	$t1, $t1, $t0		# Get address of traversing empty slot (total byte offset + base address of gameboard)
+	
+	
+	li	$t2, 0			#Counter for consecutive chips
+	addi	$t6, $t3, -1		# Let $t6 be the checked token's column index starting with token left of empty slot
+	addi	$t8, $t1, -8		# Let $t8 be the checked token's address in array
+	addi	$t9, $t4, -1		# Let $t9 be the checked token's row index starting with token above empty slot
+      CPU_PosDiagLeftCheckLoop:
+      	blt	$t6, 0, CPU_PosDiagRightCheck # Column Indices must remain between 0-6
+      	blt	$t9, 0, CPU_PosDiagRightCheck # Row Indices must remain between 0-5
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_PosDiagRightCheck
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_PosDiagCheckFound
+	addi	$t6, $t6, -1
+	addi	$t8, $t8, -8
+	addi	$t9, $t9, -1
+	j	CPU_PosDiagLeftCheckLoop
+      	
+      CPU_PosDiagRightCheck:
+      	# Keep $t2, counter, the same value
+	addi	$t6, $t3, 1		# Let $t6 be the checked token's column starting with token right of empty slot
+	addi	$t8, $t1, 8		# Let $t8 be the checked token's address in array     
+	addi	$t9, $t4, 1		# Let $t9 be the checked token's row index starting with token below empty slot
+      CPU_PosDiagRightCheckLoop:
+      	bgt	$t6, 6, CPU_NextPosDiagCol # Column Indices must remain between 0-6
+      	bgt	$t9, 5, CPU_NextPosDiagCol # Row Indices must remain between 0-5
+      	
+      	lb	$t7, ($t8)
+	bne	$t7, $a1, CPU_NextPosDiagCol
+	addi	$t2, $t2, 1
+	beq	$t2, 3, CPU_PosDiagCheckFound
+	addi	$t6, $t6, 1
+	addi	$t8, $t8, 8
+	addi	$t9, $t9, 1
+	j	CPU_PosDiagRightCheckLoop
+      CPU_NextPosDiagCol:
+      	addi	$t3, $t3, 1
+	j	CPU_PosDiagCheckLoop
+   CPU_PosDiagCheckFound:			# Found winning move!  Need to place winning move or block it.
+   	addi	$s1, $t3, 1		# Add 1 to index to make that then next move
+   	jr	$ra
 
 												
 Select4:
@@ -1327,27 +1439,27 @@ PlaySound:
 	# $t1 must be loaded with base address of array of duration of note
 	# $t2 must be loaded with base address of array of instrument of note
 	# $t3 must be loaded with base address of array of volume of note
-	li	$t5, 0
-	li	$v0, 33
+	li	$t5, 0			# Current note index is 0
+	li	$v0, 33			# Syscall is set to play sounds
 	
-  SoundLoop:
-  	beq	$t5, $t4, JumpReturn
+  SoundLoop:				# While not the last note, play current note
+  	beq	$t5, $t4, JumpReturn	# If last note was played last loop, return
   
-	sll	$t6, $t5, 2
-	add	$a0, $t0, $t6
-	add	$a1, $t1, $t6
-	add	$a2, $t2, $t6
-	add	$a3, $t3, $t6
+	sll	$t6, $t5, 2		# Calculate byte offset to apply to all word arrays
+	add	$a0, $t0, $t6		# Calculate address of current note pitch
+	add	$a1, $t1, $t6		# Calculate address of current note duration
+	add	$a2, $t2, $t6		# Calculate address of current note instrument
+	add	$a3, $t3, $t6		# Calculate address of current note volume
 	
-	lw	$a0, ($a0)
-	lw	$a1, ($a1)
-	lw	$a2, ($a2)
-	lw	$a3, ($a3)
+	lw	$a0, ($a0)		# Load value at the address of current note pitch
+	lw	$a1, ($a1)		# Load value at the address of current note duration
+	lw	$a2, ($a2)		# Load value at the address of current note instrument
+	lw	$a3, ($a3)		# Load value at the address of current note volume
 	
-	syscall 
+	syscall 			# Play the current note
 	
-	add	$t5, $t5, 1
-	j	SoundLoop 
+	add	$t5, $t5, 1		# Cycle iterator to next note
+	j	SoundLoop 		# Play next note
 	
 EndGame:
 	li	$v0, 4			#system call code for Print String
@@ -1359,7 +1471,7 @@ EndGame:
 	
 	add	$t1, $v0, $zero		#store input to $t0
 	beq	$t1, 0, EndProgram	#Exit the program
-	beq	$t1, 1, NewGame		#return to begining (NOT DONE)
+	beq	$t1, 1, NewGame		# If new game selected, return to create new game
 	
 	li	$v0, 4			#system call code for Print String
 	la	$a0, InvalidMsg  	#load address of invalid message
