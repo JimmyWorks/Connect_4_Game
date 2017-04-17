@@ -64,6 +64,13 @@ BitmapNo2:	.word	1633,1634,1762,1825,1889,1635,1699,1763,1890,1891
 BitmapWins:	.word	1638,1642,1644,1646,1650,1652,1653,1654,1656,1702,1704,1706,1708,1710,1711,1714,1716,1720,1766,1768
 BitmapWins1:	.word	1770,1772,1774,1776,1778,1781,1784,1830,1832,1834,1836,1838,1841,1842,1846,1895,1897,1900,1902,1906
 BitmapWins2:	.word	1908,1909,1912
+#Pixel indices for printing, "It's a Draw!" (array length: 84 words)
+BitmapDraw:	.word	1612,1614,1615,1616,1618,1620,1621,1622,1626,1627,1631,1632,1635,1636,1637,1640,1641,1644,1648,1651
+BitmapDraw1:	.word	1676,1679,1682,1684,1689,1692,1695,1697,1699,1701,1703,1706,1708,1710,1712,1715,1740,1743,1749,1753
+BitmapDraw2:	.word	1754,1755,1756,1759,1761,1763,1764,1767,1768,1769,1770,1772,1774,1776,1779,1804,1807,1814,1817,1820
+BitmapDraw3:	.word	1823,1825,1827,1829,1831,1834,1836,1838,1840,1868,1871,1876,1877,1881,1884,1887,1888,1891,1893,1895
+BitmapDraw4:	.word	1898,1901,1903,1907
+
 #=========================================================================================================================
 #	Music and Sound 
 #=========================================================================================================================
@@ -118,11 +125,11 @@ Music_VictoryP2_Instr:	.word	96, 96, 96, 96, 96
 Music_VictoryP2_Vol:	.word	90, 95, 100, 110, 120
 
 #Defeat Sound
-Music_Defeat_NoteCt:	.word	16
-Music_Defeat_Note:	.word	79, 67, 72, 76, 75, 68, 84, 71, 81, 72, 76, 81, 79, 72, 74, 76
-Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
-Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
-Music_Defeat_Vol:	.word	90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90
+Music_Defeat_NoteCt:	.word	31
+Music_Defeat_Note:	.word	79, 1, 67, 1, 72, 1, 76, 1, 75, 1, 68, 1, 84, 1, 71, 1, 81, 1, 72, 1, 76, 1, 81, 1, 79, 1, 72, 1, 74, 1, 76
+Music_Defeat_Dur:	.word	300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300
+Music_Defeat_Instr:	.word	5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
+Music_Defeat_Vol:	.word	90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90,0,90
 
 #=========================================================================================================================
 #	GameBoard Memory
@@ -177,11 +184,12 @@ InvalidMsg:	.asciiz			"Invalid selection.  Please try again. \n"
 InvalComMovMsg:	.asciiz			"Computer has made an invalid move. \n"
 ColumnHeader:	.asciiz			" 1 2 3 4 5 6 7 \n"
 WinMsg:		.asciiz			"\n\n====================\n\nCongratulations!  You WIN!! \n\n====================\n\n"
-LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE, you goober!! \n\n====================\n\n"
+LoseMsg:	.asciiz			"\n\n====================\n\nYou LOSE!! \n\n====================\n\n"
 P1WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 1 WINS!! \n\n====================\n\n"
 P2WinMsg:	.asciiz			"\n\n====================\n\nCongratulations!  Player 2 WINS!! \n\n====================\n\n"
+TieMsg:		.asciiz			"\n\n====================\n\nIt's a DRAW!!\n\n====================\n\n"
 Thankyou:	.asciiz			"Do you wish to play again? \n Enter 0 to exit \n Enter 1 to play again\n\n"
-DEBUG:		.asciiz			"DEBUG Checking Column: "	#for debug testing
+DEBUG:		.asciiz			"DEBUG Pause "	#for debug testing
 DEBUG2:		.asciiz			"DEBUG2 Counter: "
 DEBUG3:		.asciiz			"DEBUG3 Cur char: "
 DEBUG4:		.asciiz			"Height: "
@@ -275,12 +283,14 @@ InvalidMode:
 	
 	j 	RetryGameMode
 ValidMode:
+	#Chime for Selection
 	addi $a0, $zero, 84
 	addi $a1, $zero, 600
 	addi $a2, $zero, 1
 	addi $a3, $zero, 90
 	li $v0, 33
 	syscall 
+	
 	beq	$s5, 1, SelectDifficulty
 	jr	$ra	
 	
@@ -302,6 +312,7 @@ InvalidDifficulty:
 	la	$a0, InvalDiffMsg  	#load address of Invalid Mode
 	syscall				#print user input prompt
 Wrongsound:
+	#Chime for Selection
 	addi $a0, $zero, 50
 	addi $a1, $zero, 200
 	addi $a2, $zero, 16
@@ -317,12 +328,14 @@ Wrongsound:
 	j 	RetryDifficulty
 
 ValidDifficulty:
+	#Chime for Selection
 	addi $a0, $zero, 84
 	addi $a1, $zero, 600
 	addi $a2, $zero, 1
 	addi $a3, $zero, 90
 	li $v0, 33
-	syscall 
+	syscall
+	
 	add	$s5, $s5, 2		#offset selection by 2 to correct game mode selection, e.g. Selected Easy Mode = 1 + 2 = Game Mode 3	
 	jr	$ra
 			
@@ -490,10 +503,6 @@ PlayerMove:
 	j	CheckValidMove		#Check if the move is valid
 	
 ComputerMove:
-	
-	li	$v0, 32
-	li	$a0, 600
-	syscall	
 	
 	beq	$s5, 3, EasyMode
 	beq	$s5, 4, NormalMode
@@ -899,16 +908,7 @@ InvalidCompMove:
 	j	ComputerMove		#return
 	
 NewMove:
-	# Sound for Selected Column
-	li $t1, 2
-	mul $t1, $t1, $s1
-	addi $t1, $t1, 50
-	add $a0, $zero, $t1
-	addi $a1, $zero, 400
-	addi $a2, $zero, 96
-	addi $a3, $zero, 100
-	li $v0, 33
-	syscall  	
+	 	
 	addi    $s3, $s1, -1 		#Store current move's column index in $s3
 	mul	$t4, $s3, 4		#This is the index offset for word
 	lw	$t0, ClCount($t4)	#Store height of the column in t0
@@ -921,7 +921,59 @@ NewMove:
 	add	$s4, $t0, $0		#Store current move's row index in $s4
 	addi	$t0, $t0, 1		#add 1 to column count
 	sw	$t0, ClCount($t4)	#store updated count of column 1 into memory
+	
+	# Check If Computer to Delay
+	beq	$s0, 88, CheckForPause	# If current chip is computer or player 2, check for pause
+	
+	# Sound for Selected Column
+	li $t1, 2
+	mul $t1, $t1, $s1
+	addi $t1, $t1, 50
+	add $a0, $zero, $t1
+	addi $a1, $zero, 400
+	addi $a2, $zero, 96
+	addi $a3, $zero, 100
+	li $v0, 31
+	syscall 
+	
 	jr	$ra			#return
+CheckForPause:	
+	#Pause if Computer Move for Effect
+	beq	$s5, 2, JumpReturn	# If it's player 2, return
+	li	$v0, 32			# Else, pause 600 ms before continuing
+	li	$a0, 1000
+	syscall	
+	
+	# Sound for Selected Column
+	li $t1, 2
+	mul $t1, $t1, $s1
+	addi $t1, $t1, 50
+	add $a0, $zero, $t1
+	addi $a1, $zero, 400
+	addi $a2, $zero, 96
+	addi $a3, $zero, 100
+	li $v0, 31
+	syscall 
+		#======= DEBUG ROUTINE FOR CHECKING VALUES ========= 
+	li $v0, 4 #
+	la $a0, DEBUG # 
+	syscall #
+
+
+
+	#li $v0, 1 # 
+	#add $a0, $t0, $0 #select register to check #
+	#syscall #
+
+
+
+	li $v0, 4 # 
+	la $a0, Newline # 
+	syscall #
+
+	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
+	
+	jr	$ra
 	
 FullColumn:
 	li	$v0, 4			#system call code for Print String
@@ -1262,17 +1314,17 @@ CheckPosDiag:
 	beq	$t0, $t9, TieCheck		#if tokens-in-a-row = win condition, found a winner
 	j	PosDiagLoopRight
 	
-	TieCheck:
-	beq $t1, 8, TieFound
-	lw $t2, ClCount($t1)
-	addi $t1, $t1, 1
-	bne $t2, 6, NoWinnerFound
-	j TieCheck
+TieCheck:
+	li	$t0, 0				# Let $t0 be the index for column height checked
 	
-	
-	
-	NoWinnerFound:
-	jr	$ra			#No winner found, return to game loop
+	TieCheckLoop:
+	beq 	$t0, 7, Tie			# If the loop successfully checks all rows for height of 6, it is a draw
+	sll	$t1, $t0, 2			# Convert index to offset in bytes (multiply by 4)
+	lw 	$t2, ClCount($t1)		# Add offset to ClCount and load word to $t2
+	bne	$t2, 6, JumpReturn		# If $t2, the height, is not 6, no tie and no win, return to main
+	addi 	$t0, $t0, 1			# Else, go to next column
+	j TieCheckLoop				# Check again
+
 	
 WinnerFound:
 	jal	BitmapEndGameBar	#Print white announcement bar (Note: $ra to game loop lost)
@@ -1297,10 +1349,6 @@ BitmapPrint:
   	sw	$a2, 0x10010000($t4)  	
   	add	$t2, $t2, 1
 	j	BitmapPrintLoop
-	
-TieFound:
-	jal	BitmapEndGameBar	#Print white announcement bar (Note: $ra to game loop lost)
-	j	LogicalError
 
 BitmapEndGameBar:
 #Print white bar at bitmap row starting at pixel 1472 ending 9 rows down
@@ -1455,33 +1503,24 @@ Player2Wins:
 	j	EndGame
 	
 Tie:
-	#Filled in for testing purposes
-	la	$a0, BitmapPlayer	# Load $a0 with address of array of pixel indices for pixels to print statement
-	li	$a1, 57			# Load $a1 with number of pixels to change (length of pixel index array)
+	jal	BitmapEndGameBar	#Print white announcement bar (Note: $ra to game loop lost)
+	la	$a0, BitmapDraw		# Load $a0 with address of array of pixel indices for pixels to print statement
+	li	$a1, 84			# Load $a1 with number of pixels to change (length of pixel index array)
 	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
 	jal	BitmapPrint		# Call Bitmap Print sub-routine
-	
-	la	$a0, BitmapNo2		# Load $a0 with address of array of pixel indices for pixels to print statement
-	li	$a1, 10			# Load $a1 with number of pixels to change (length of pixel index array)
-	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
-	jal	BitmapPrint		# Call Bitmap Print sub-routine
-	
-	la	$a0, BitmapWins	# Load $a0 with address of array of pixel indices for pixels to print statement
-	li	$a1, 43			# Load $a1 with number of pixels to change (length of pixel index array)
-	li	$a2, 0x00000000		# Load $a2 with 24-RGB color for each pixel updated
-	jal	BitmapPrint		# Call Bitmap Print sub-routine
-	
+		
 	li	$v0, 4			#system call code for Print String
-	la	$a0, P2WinMsg 		#load address of win message
+	la	$a0, TieMsg 		#load address of win message
 	syscall				#print
 	
-	la	$t4, Music_VictoryP2_NoteCt
-	lw	$t4, ($t4)			# $t4 loaded with number of notes
-	la	$t0, Music_VictoryP2_Note	# $t0 must be loaded with base address of array of notes
-	la	$t1, Music_VictoryP2_Dur	# $t1 must be loaded with base address of array of duration of note
-	la	$t2, Music_VictoryP2_Instr 	# $t2 must be loaded with base address of array of instrument of note
-	la	$t3, Music_VictoryP2_Vol	# $t3 must be loaded with base address of array of volume of note
-	jal	PlaySound			#play sound
+	la	$t4, Music_Victory_NoteCt
+	lw	$t4, ($t4)		# $t4 loaded with number of notes
+	la	$t0, Music_Victory_Note	# $t0 must be loaded with base address of array of notes
+	la	$t1, Music_Victory_Dur	# $t1 must be loaded with base address of array of duration of note
+	la	$t2, Music_Victory_Instr# $t2 must be loaded with base address of array of instrument of note
+	la	$t3, Music_Victory_Vol	# $t3 must be loaded with base address of array of volume of note
+	jal	PlaySound		#play sound
+	
 	
 	j	EndGame
 	
@@ -1492,7 +1531,7 @@ PlaySound:
 	# $t2 must be loaded with base address of array of instrument of note
 	# $t3 must be loaded with base address of array of volume of note
 	li	$t5, 0			# Current note index is 0
-	li	$v0, 33			# Syscall is set to play sounds
+	li	$v0, 31			# Syscall is set to play sounds
 	
   SoundLoop:				# While not the last note, play current note
   	beq	$t5, $t4, JumpReturn	# If last note was played last loop, return
