@@ -256,6 +256,7 @@ NewGame:
 GameLoop:
 	jal	CurrentMove
 	jal	PrintBoard
+	jal	PlayChime
 	jal	UpdateBitmap
 	jal 	CheckWinCondition
 	jal	SwitchPlayers
@@ -923,28 +924,18 @@ NewMove:
 	sw	$t0, ClCount($t4)	#store updated count of column 1 into memory
 	
 	# Check If Computer to Delay
-	beq	$s0, 88, CheckForPause	# If current chip is computer or player 2, check for pause
-	
-	# Sound for Selected Column
-	li $t1, 2
-	mul $t1, $t1, $s1
-	addi $t1, $t1, 50
-	add $a0, $zero, $t1
-	addi $a1, $zero, 400
-	addi $a2, $zero, 96
-	addi $a3, $zero, 100
-	li $v0, 31
-	syscall 
-	
+	beq	$s0, 88, CheckForPause	# If current chip is computer or player 2, check for pause	
 	jr	$ra			#return
+	
 CheckForPause:	
 	#Pause if Computer Move for Effect
 	beq	$s5, 2, JumpReturn	# If it's player 2, return
 	li	$v0, 32			# Else, pause 600 ms before continuing
 	li	$a0, 1000
 	syscall	
+	jr 	$ra
 	
-	# Sound for Selected Column
+PlayChime:	# Sound for Selected Column
 	li $t1, 2
 	mul $t1, $t1, $s1
 	addi $t1, $t1, 50
@@ -954,26 +945,27 @@ CheckForPause:
 	addi $a3, $zero, 100
 	li $v0, 31
 	syscall 
-		#======= DEBUG ROUTINE FOR CHECKING VALUES ========= 
-	li $v0, 4 #
-	la $a0, DEBUG # 
-	syscall #
+	jr	$ra
+	
+	#======= DEBUG ROUTINE FOR CHECKING VALUES ========= 
+	#li $v0, 4
+	#la $a0, DEBUG
+	#syscall
 
 
 
-	#li $v0, 1 # 
-	#add $a0, $t0, $0 #select register to check #
-	#syscall #
+	#li $v0, 1 
+	#add $a0, $t0, $0 #select register to check
+	#syscall
 
 
 
-	li $v0, 4 # 
-	la $a0, Newline # 
-	syscall #
+	#li $v0, 4 
+	#la $a0, Newline 
+	#syscall 					
 
 	#======= DEBUG ROUTINE FOR CHECKING VALUES =========
-	
-	jr	$ra
+
 	
 FullColumn:
 	li	$v0, 4			#system call code for Print String
