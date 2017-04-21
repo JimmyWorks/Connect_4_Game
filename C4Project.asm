@@ -316,7 +316,20 @@ InvalidMode:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, InvalidModeMsg  	#load address of Invalid Mode
 	syscall				#print user input prompt
-	
+Wrongsound:
+	#Chime for Selection
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall 
+	addi $a0, $zero, 50
+	addi $a1, $zero, 200
+	addi $a2, $zero, 16
+	addi $a3, $zero, 100
+	li $v0, 33
+	syscall	
 	j 	RetryGameMode
 ValidMode:
 	#Chime for Selection
