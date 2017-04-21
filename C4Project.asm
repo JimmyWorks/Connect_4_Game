@@ -360,7 +360,7 @@ InvalidDifficulty:
 	li	$v0, 4			#system call code for Print String
 	la	$a0, InvalDiffMsg  	#load address of Invalid Mode
 	syscall				#print user input prompt
-Wrongsound:
+Wrongsound2:
 	#Chime for Selection
 	addi $a0, $zero, 50
 	addi $a1, $zero, 200
