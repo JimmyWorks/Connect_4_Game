@@ -228,7 +228,7 @@ Newline:	.asciiz			"\n"
    	move $v0,$k0   # Restore $v0
    	move $a0,$k1   # Restore $a0
   	mfc0 $k0,$14   # Coprocessor 0 register $14 has address of trapping instruction
-   	addi $k0,$k0,4 # Add 4 to point to next instruction
+   	addi $k0,$k0,-20 # Subtract 20 to ask for input again
    	mtc0 $k0,$14   # Store new address back into $14
    	eret           # Error return; set PC to value in $14
    	
@@ -930,7 +930,7 @@ InvalidInput:				#this label is used by different jump calls, but is also automa
 	j	LogicalError		#print system error if $s0 is not player or computer
 	
 InvalidPlayerMove:	
-	teqi	$zero, 0
+	
 	
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalidMsg  	#load address of invalid move message
@@ -1613,4 +1613,3 @@ LogicalError:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalComMovMsg 	#load address of error prompt
 	syscall				#print error prompt	
-
