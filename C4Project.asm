@@ -935,6 +935,7 @@ InvalidPlayerMove:
 	li	$v0, 4			#system call code for Print String
 	la	$a0,InvalidMsg  	#load address of invalid move message
 	syscall				#print invalid move message
+	j	PlayerMove
 
 InvalidCompMove:
 	li	$v0, 4			#system call code for Print String
